@@ -1,5 +1,5 @@
 // Minimal service worker: makes the app installable and caches the shell for offline launch.
-const CACHE = 'co-hortdinate-v1';
+const CACHE = 'co-hortdinate-v2';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon.svg'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL))); self.skipWaiting(); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k))))); self.clients.claim(); });
