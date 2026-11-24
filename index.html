@@ -202,6 +202,59 @@ a.btn.ghost{background:#fff;color:var(--brand);border:2px solid var(--brand);box
 .avd small{font-size:10px;color:var(--muted)}
 .avd.on{background:var(--home);color:#fff;box-shadow:0 2px 0 #1c6fd6}.avd.on small{color:#e3efff}
 nav button{font-size:11px}
+
+
+
+
+/* ───────── v3 additions ───────── */
+/* public holidays: soft grey (programmes keep sunshine yellow) */
+.cell.ph{background:#f1eef6;border-color:#ddd6e8;box-shadow:0 3px 0 #e8e2f0}
+.cell.ph .big{color:#8b84a3;font-size:15px}
+.pill.ph{background:#efebf5;color:#6f6889;font-weight:700}
+.hsub{font-size:13px;font-weight:700;opacity:.85;margin-left:4px}
+.toast{position:fixed;left:12px;right:12px;bottom:calc(86px + env(safe-area-inset-bottom));z-index:20;background:#2b2350;color:#fff;padding:11px 14px;border-radius:14px;font-weight:700;font-size:14px;text-align:center;box-shadow:0 6px 18px rgba(0,0,0,.2);animation:pop .2s ease-out}
+@keyframes pop{from{transform:translateY(10px);opacity:0}to{transform:none;opacity:1}}
+.flex.col{flex-direction:column;align-items:stretch;gap:4px}
+button.small{padding:6px 10px;font-size:13px}
+button.urgent{background:var(--need);box-shadow:0 3px 0 #d93a40}
+.card.inbox{border-color:#d6ccff;background:linear-gradient(180deg,#f4f0ff,#fff 60%);box-shadow:0 4px 0 #e4dcff}
+.needrow{border-bottom:1px dashed var(--line);padding:6px 0}
+.needrow:last-child{border-bottom:0}
+.inlineform{background:#faf7ff;border:2px solid var(--brand-soft);border-radius:14px;padding:10px 12px;margin:8px 0}
+.inlineform .toggle{margin:4px 10px 4px 0}
+.notesbox{background:#fff8e1;border-radius:12px;padding:8px 12px;margin:6px 0;font-size:14px}
+.notes{padding:4px 0;border-bottom:1px dashed #f1dfa8}.notes:last-child{border-bottom:0}
+.partrow{display:flex;gap:4px;margin-top:6px;padding-left:72px}
+.partrow button{background:#f4efe6;color:var(--ink);box-shadow:0 2px 0 #e6ddcd;padding:4px 10px;font-size:12px;border-radius:9px}
+.partrow button.on{background:var(--ink);color:#fff;box-shadow:0 2px 0 #000}
+.cell .n .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--brand);margin-left:auto;align-self:center}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.tag{margin:0;display:inline-block;color:var(--ink);font-size:13px}
+.tag input{position:absolute;opacity:0;pointer-events:none}
+.tag span{display:inline-block;padding:6px 10px;border-radius:999px;background:#f4efe6;box-shadow:0 2px 0 #e6ddcd;font-weight:700;cursor:pointer}
+.tag input:checked+span{background:var(--brand);color:#fff;box-shadow:0 2px 0 var(--brand-dark)}
+.tag input:focus-visible+span{outline:3px solid var(--brand-soft)}
+.chip.small{font-size:12px;padding:2px 7px}
+.kidrow.wrap{align-items:flex-start}
+.sectionhead{display:flex;align-items:center;gap:8px;margin:18px 4px 8px}
+.sectionhead h2{margin:0;font-size:20px;flex:1}
+.card.listing.featured{border-color:#ffd166;box-shadow:0 4px 0 #ffe7a3;background:linear-gradient(180deg,#fffbea,#fff 50%)}
+.pill.feat,.feat{background:#ffd23f;color:#5c4300;border-radius:999px;padding:1px 8px;font-weight:800}
+.friends{color:var(--host);font-weight:800}
+.match{color:var(--brand);font-weight:800}
+.offer{background:#fff1cc;border-radius:12px;padding:6px 10px;display:inline-block}
+.plans{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+.planbox{border:2px solid var(--line);border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:6px}
+.planbox.cur{border-color:var(--brand);background:#faf7ff}
+.planbox .price{font:800 15px "Baloo 2",Nunito,sans-serif;color:var(--brand)}
+.planbox ul{margin:0;padding-left:18px;font-size:13px;color:var(--muted);flex:1}
+.bar{display:grid;grid-template-columns:150px 1fr 34px;align-items:center;gap:8px;font-size:13px;margin:4px 0}
+.bar i{display:block;height:12px;border-radius:6px;background:linear-gradient(90deg,var(--brand),var(--pink))}
+.bar b{text-align:right}
+.card.adminc{border-color:#c4b5fd;background:#faf7ff}
+code{background:#f4efe6;border-radius:6px;padding:1px 5px;font-size:12px}
+.summary span{display:block;line-height:1.2}
+nav[hidden]{display:none!important}
 </style>
 </head>
 <body>
@@ -213,37 +266,40 @@ nav button{font-size:11px}
 // ─────────────────────────────────────────────────────────────
 // CONFIG — paste your Supabase project URL + anon (publishable) key.
 // Leave blank to run in DEMO MODE (sample data, stored in this browser only).
+// SERVER_READY: set to true once the "cohortdinate" server function is deployed
+// (turns on calendar subscriptions and provider card payments).
 // ─────────────────────────────────────────────────────────────
 const CONFIG = {
   SUPABASE_URL: 'https://tbbwotwysaioqrvzczgw.supabase.co',
   SUPABASE_ANON_KEY: 'sb_publishable_Aj9xj5am6RdAnmXbhfl6Wg_vYu5RY7-',
+  SERVER_READY: false,
 };
-
-// Official NZ Ministry of Education holiday dates. Term 1 start / Term 4 end vary
-// by school, so group admins can adjust these under Group → Holiday dates.
-const DEFAULT_HOLIDAYS = [
-  { name: 'Summer 2026/27', start_date: '2026-12-19', end_date: '2027-02-02',
-    note: 'Schools finish by Fri 18 Dec and restart between Thu 28 Jan and Wed 3 Feb — set to your school' },
-  { name: 'Autumn break 2027', start_date: '2027-04-10', end_date: '2027-04-26', note: 'Anzac Day observed Mon 26 Apr' },
-  { name: 'Winter break 2027', start_date: '2027-07-03', end_date: '2027-07-18', note: '' },
-  { name: 'Spring break 2027', start_date: '2027-09-25', end_date: '2027-10-10', note: '' },
-  { name: 'Summer 2027/28', start_date: '2027-12-18', end_date: '2028-02-01',
-    note: 'Provisional — Term 4 ends by Fri 17 Dec; 2028 Term 1 start still to confirm' },
-];
-
-// Public holidays (Auckland) falling inside the holiday periods — most parents are off work these days
-const PUBLIC_HOLIDAYS = {
-  '2026-12-25': 'Christmas', '2026-12-28': 'Boxing Day (obs.)', '2027-01-01': "New Year's Day",
-  '2027-01-04': 'Day after New Year (obs.)', '2027-02-01': 'Auckland Anniversary', '2027-04-26': 'Anzac Day (obs.)',
-  '2027-12-27': 'Christmas (obs.)', '2027-12-28': 'Boxing Day (obs.)', '2028-01-03': "New Year's (obs.)",
-  '2028-01-04': 'Day after New Year (obs.)', '2028-01-31': 'Auckland Anniversary',
-};
+const FUNCTIONS_URL = CONFIG.SUPABASE_URL ? CONFIG.SUPABASE_URL.replace(/\/$/, '') + '/functions/v1/cohortdinate' : '';
 
 const STATUS = {
   need: { label: 'Need care', short: 'Need' },
   host: { label: 'Home & hosting', short: 'Hosting' },
   home: { label: 'Home, not hosting', short: 'Home' },
   away: { label: 'Away', short: 'Away' },
+};
+const PARTS = { full: 'All day', am: 'Morning', pm: 'Afternoon' };
+const partSuffix = p => p === 'am' ? ' (morning)' : p === 'pm' ? ' (afternoon)' : '';
+const partSlots = p => p === 'am' ? ['am'] : p === 'pm' ? ['pm'] : ['am', 'pm'];
+const partsOverlap = (a, b) => a === 'full' || b === 'full' || a === b;
+
+const INTERESTS = [
+  ['sport', '⚽', 'Sport & active'], ['outdoors', '🌿', 'Outdoors & nature'], ['arts', '🎨', 'Arts & crafts'], ['music', '🎵', 'Music'],
+  ['dance', '💃', 'Dance & drama'], ['science', '🔬', 'Science & STEM'], ['coding', '💻', 'Coding & tech'], ['cooking', '🧁', 'Cooking'],
+  ['animals', '🐾', 'Animals'], ['swimming', '🏊', 'Swimming & water'], ['building', '🧱', 'Lego & building'], ['gaming', '🎮', 'Gaming'],
+  ['reading', '📚', 'Reading & writing'], ['culture', '🌏', 'Te reo & culture'], ['trips', '🚌', 'Trips & excursions'], ['quiet', '🧘', 'Quiet & low-key'],
+];
+const INTEREST = Object.fromEntries(INTERESTS.map(([k, e, l]) => [k, { e, l }]));
+const COUNTRIES = { NZ: 'New Zealand', AU: 'Australia (coming soon)' };
+const ONEOFF_TYPES = ['Teacher-only day', 'Strike day', 'Sick day', 'Early finish', 'School event'];
+const PLAN_INFO = {
+  basic: { name: 'Basic', price: 'Free', bits: ['Name, ages, interests & booking link', 'Shown to families nearby'] },
+  standard: { name: 'Standard', price: '$199/yr or $69 per holiday', bits: ['Full listing: about, prices, dates, phone', 'Your Co-hortdinate offer', 'Suggested on days families need cover', 'Views, clicks & local demand stats'] },
+  featured: { name: 'Featured', price: '$399/yr or $129 per holiday', bits: ['Everything in Standard', 'Top of the list nearby, with a Featured badge', 'Included in the "holidays start in 3 weeks" email to nearby families'] },
 };
 
 // ───────────── utils ─────────────
@@ -258,7 +314,10 @@ const D = {
   weekend(s) { const w = D.dow(s); return w === 0 || w === 6; },
   label(s) { return D.parse(s).toLocaleDateString('en-NZ', { weekday: 'short', day: 'numeric', timeZone: 'UTC' }); },
   month(s) { return D.parse(s).toLocaleDateString('en-NZ', { month: 'short', year: 'numeric', timeZone: 'UTC' }); },
+  mon(s) { return D.parse(s).toLocaleDateString('en-NZ', { month: 'short', timeZone: 'UTC' }); },
   short(s) { return D.parse(s).toLocaleDateString('en-NZ', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }); },
+  full(s) { return D.parse(s).toLocaleDateString('en-NZ', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }); },
+  long(s) { return D.parse(s).toLocaleDateString('en-NZ', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' }); },
   today() { const t = new Date(); return `${t.getFullYear()}-${pad(t.getMonth() + 1)}-${pad(t.getDate())}`; },
 };
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : 'id' + Math.random().toString(36).slice(2));
@@ -274,7 +333,6 @@ function ageOn(kid, date) {
   return a;
 }
 function kidName(k, date) { const a = ageOn(k, date || D.today()); return esc(k.first_name) + (a != null ? ` (${a})` : ''); }
-// Compress a sorted list of dates into runs (bridging weekends)
 function runs(dates) {
   const out = []; let cur = null;
   for (const d of [...dates].sort()) {
@@ -284,11 +342,26 @@ function runs(dates) {
   return out;
 }
 const runLabel = r => r.start === r.end ? D.short(r.start) : `${D.short(r.start)} – ${D.short(r.end)}`;
+function kmBetween(a, b) {
+  const R = 6371, r = x => x * Math.PI / 180;
+  const h = Math.sin(r(b.lat - a.lat) / 2) ** 2 + Math.cos(r(a.lat)) * Math.cos(r(b.lat)) * Math.sin(r(b.lng - a.lng) / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+const listNames = arr => arr.length <= 1 ? (arr[0] || '') : arr.slice(0, -1).join(', ') + ' & ' + arr[arr.length - 1];
+function toast(msg) {
+  const el = document.createElement('div'); el.className = 'toast'; el.textContent = msg;
+  document.body.appendChild(el); setTimeout(() => el.remove(), 3200);
+}
+const DEMO_PLACES = [[1,"NZ","Auckland","Auckland CBD",-36.848,174.763],[2,"NZ","Auckland","Ponsonby",-36.854,174.743],[3,"NZ","Auckland","Grey Lynn",-36.86,174.737],[4,"NZ","Auckland","Westmere",-36.853,174.722],[5,"NZ","Auckland","Herne Bay",-36.844,174.737],[6,"NZ","Auckland","Mt Albert",-36.884,174.72],[7,"NZ","Auckland","Mt Eden",-36.88,174.755],[8,"NZ","Auckland","Sandringham",-36.89,174.735],[9,"NZ","Auckland","Kingsland",-36.872,174.744],[10,"NZ","Auckland","Point Chevalier",-36.867,174.71],[11,"NZ","Auckland","Waterview",-36.88,174.7],[12,"NZ","Auckland","Avondale",-36.896,174.692],[13,"NZ","Auckland","Blockhouse Bay",-36.92,174.7],[14,"NZ","Auckland","New Lynn",-36.908,174.684],[15,"NZ","Auckland","Titirangi",-36.938,174.656],[16,"NZ","Auckland","Glen Eden",-36.91,174.65],[17,"NZ","Auckland","Henderson",-36.879,174.63],[18,"NZ","Auckland","Te Atatū",-36.845,174.65],[19,"NZ","Auckland","Massey",-36.84,174.61],[20,"NZ","Auckland","Hobsonville",-36.795,174.655],[21,"NZ","Auckland","West Harbour",-36.817,174.617],[22,"NZ","Auckland","Kumeū",-36.777,174.556],[23,"NZ","Auckland","Swanson",-36.866,174.577],[24,"NZ","Auckland","Epsom",-36.888,174.773],[25,"NZ","Auckland","Remuera",-36.878,174.8],[26,"NZ","Auckland","Newmarket",-36.869,174.778],[27,"NZ","Auckland","Parnell",-36.856,174.783],[28,"NZ","Auckland","Grafton",-36.861,174.768],[29,"NZ","Auckland","Ellerslie",-36.898,174.808],[30,"NZ","Auckland","Greenlane",-36.893,174.795],[31,"NZ","Auckland","One Tree Hill",-36.903,174.785],[32,"NZ","Auckland","Royal Oak",-36.91,174.773],[33,"NZ","Auckland","Onehunga",-36.924,174.785],[34,"NZ","Auckland","Three Kings",-36.902,174.755],[35,"NZ","Auckland","Mt Roskill",-36.912,174.737],[36,"NZ","Auckland","Hillsborough",-36.922,174.75],[37,"NZ","Auckland","Lynfield",-36.928,174.718],[38,"NZ","Auckland","Penrose",-36.915,174.815],[39,"NZ","Auckland","Mt Wellington",-36.905,174.84],[40,"NZ","Auckland","Panmure",-36.9,174.855],[41,"NZ","Auckland","Glen Innes",-36.877,174.857],[42,"NZ","Auckland","St Heliers",-36.855,174.865],[43,"NZ","Auckland","Mission Bay",-36.85,174.832],[44,"NZ","Auckland","Kohimarama",-36.853,174.845],[45,"NZ","Auckland","Ōrākei",-36.865,174.815],[46,"NZ","Auckland","Meadowbank",-36.871,174.827],[47,"NZ","Auckland","St Johns",-36.873,174.843],[48,"NZ","Auckland","Howick",-36.894,174.93],[49,"NZ","Auckland","Pakuranga",-36.912,174.877],[50,"NZ","Auckland","Botany",-36.93,174.913],[51,"NZ","Auckland","Half Moon Bay",-36.885,174.9],[52,"NZ","Auckland","Bucklands Beach",-36.87,174.905],[53,"NZ","Auckland","Flat Bush",-36.966,174.92],[54,"NZ","Auckland","Ōtāhuhu",-36.945,174.84],[55,"NZ","Auckland","Māngere",-36.968,174.8],[56,"NZ","Auckland","Māngere Bridge",-36.937,174.788],[57,"NZ","Auckland","Ōtara",-36.96,174.87],[58,"NZ","Auckland","Papatoetoe",-36.975,174.855],[59,"NZ","Auckland","Manukau",-36.993,174.88],[60,"NZ","Auckland","Manurewa",-37.02,174.895],[61,"NZ","Auckland","Takanini",-37.045,174.925],[62,"NZ","Auckland","Papakura",-37.065,174.945],[63,"NZ","Auckland","Drury",-37.1,174.95],[64,"NZ","Auckland","Pukekohe",-37.2,174.9],[65,"NZ","Auckland","Waiuku",-37.25,174.733],[66,"NZ","Auckland","Beachlands",-36.88,175.0],[67,"NZ","Auckland","Clevedon",-36.99,175.04],[68,"NZ","Auckland","Devonport",-36.83,174.795],[69,"NZ","Auckland","Takapuna",-36.788,174.77],[70,"NZ","Auckland","Milford",-36.773,174.765],[71,"NZ","Auckland","Northcote",-36.8,174.745],[72,"NZ","Auckland","Birkenhead",-36.81,174.725],[73,"NZ","Auckland","Glenfield",-36.78,174.72],[74,"NZ","Auckland","Sunnynook",-36.76,174.745],[75,"NZ","Auckland","Mairangi Bay",-36.737,174.755],[76,"NZ","Auckland","Browns Bay",-36.715,174.746],[77,"NZ","Auckland","Torbay",-36.695,174.75],[78,"NZ","Auckland","Albany",-36.728,174.7],[79,"NZ","Auckland","Silverdale",-36.617,174.678],[80,"NZ","Auckland","Ōrewa",-36.587,174.695],[81,"NZ","Auckland","Whangaparāoa",-36.63,174.745],[82,"NZ","Auckland","Warkworth",-36.398,174.664],[83,"NZ","Auckland","Waiheke Island",-36.795,175.09],[84,"NZ","Northland","Whangārei",-35.725,174.323],[85,"NZ","Northland","Kerikeri",-35.227,173.947],[86,"NZ","Northland","Kaitāia",-35.113,173.263],[87,"NZ","Northland","Dargaville",-35.94,173.87],[88,"NZ","Northland","Paihia",-35.282,174.091],[89,"NZ","Waikato","Hamilton",-37.787,175.279],[90,"NZ","Waikato","Cambridge",-37.884,175.469],[91,"NZ","Waikato","Te Awamutu",-38.008,175.325],[92,"NZ","Waikato","Huntly",-37.56,175.16],[93,"NZ","Waikato","Ngāruawāhia",-37.667,175.15],[94,"NZ","Waikato","Pōkeno",-37.247,175.02],[95,"NZ","Waikato","Matamata",-37.81,175.773],[96,"NZ","Waikato","Morrinsville",-37.656,175.528],[97,"NZ","Waikato","Thames",-37.138,175.54],[98,"NZ","Waikato","Whitianga",-36.833,175.7],[99,"NZ","Waikato","Raglan",-37.8,174.87],[100,"NZ","Waikato","Taupō",-38.686,176.07],[101,"NZ","Waikato","Tokoroa",-38.233,175.866],[102,"NZ","Waikato","Te Kūiti",-38.333,175.163],[103,"NZ","Bay of Plenty","Tauranga",-37.687,176.165],[104,"NZ","Bay of Plenty","Mount Maunganui",-37.639,176.185],[105,"NZ","Bay of Plenty","Pāpāmoa",-37.7,176.29],[106,"NZ","Bay of Plenty","Te Puke",-37.784,176.326],[107,"NZ","Bay of Plenty","Katikati",-37.55,175.917],[108,"NZ","Bay of Plenty","Rotorua",-38.137,176.251],[109,"NZ","Bay of Plenty","Whakatāne",-37.953,176.99],[110,"NZ","Bay of Plenty","Ōpōtiki",-38.008,177.287],[111,"NZ","Bay of Plenty","Kawerau",-38.084,176.7],[112,"NZ","Gisborne","Gisborne",-38.662,178.018],[113,"NZ","Hawke's Bay","Napier",-39.49,176.912],[114,"NZ","Hawke's Bay","Hastings",-39.639,176.84],[115,"NZ","Hawke's Bay","Havelock North",-39.669,176.88],[116,"NZ","Hawke's Bay","Waipukurau",-39.995,176.555],[117,"NZ","Hawke's Bay","Wairoa",-39.033,177.367],[118,"NZ","Taranaki","New Plymouth",-39.057,174.075],[119,"NZ","Taranaki","Hāwera",-39.59,174.283],[120,"NZ","Taranaki","Stratford",-39.338,174.284],[121,"NZ","Taranaki","Inglewood",-39.157,174.206],[122,"NZ","Manawatū-Whanganui","Palmerston North",-40.356,175.611],[123,"NZ","Manawatū-Whanganui","Whanganui",-39.93,175.05],[124,"NZ","Manawatū-Whanganui","Feilding",-40.225,175.565],[125,"NZ","Manawatū-Whanganui","Levin",-40.622,175.286],[126,"NZ","Manawatū-Whanganui","Marton",-40.069,175.379],[127,"NZ","Manawatū-Whanganui","Taihape",-39.676,175.797],[128,"NZ","Manawatū-Whanganui","Ohakune",-39.418,175.4],[129,"NZ","Manawatū-Whanganui","Dannevirke",-40.207,176.098],[130,"NZ","Wellington","Wellington Central",-41.286,174.776],[131,"NZ","Wellington","Karori",-41.284,174.74],[132,"NZ","Wellington","Johnsonville",-41.222,174.805],[133,"NZ","Wellington","Khandallah",-41.245,174.792],[134,"NZ","Wellington","Miramar",-41.315,174.815],[135,"NZ","Wellington","Kilbirnie",-41.317,174.795],[136,"NZ","Wellington","Newtown",-41.312,174.779],[137,"NZ","Wellington","Island Bay",-41.343,174.77],[138,"NZ","Wellington","Tawa",-41.17,174.83],[139,"NZ","Wellington","Porirua",-41.133,174.84],[140,"NZ","Wellington","Petone",-41.227,174.87],[141,"NZ","Wellington","Lower Hutt",-41.21,174.908],[142,"NZ","Wellington","Wainuiomata",-41.262,174.945],[143,"NZ","Wellington","Upper Hutt",-41.124,175.07],[144,"NZ","Wellington","Paraparaumu",-40.914,175.006],[145,"NZ","Wellington","Waikanae",-40.876,175.066],[146,"NZ","Wellington","Ōtaki",-40.758,175.15],[147,"NZ","Wellington","Masterton",-40.952,175.657],[148,"NZ","Wellington","Carterton",-41.025,175.528],[149,"NZ","Wellington","Featherston",-41.117,175.326],[150,"NZ","Wellington","Martinborough",-41.218,175.459],[151,"NZ","Nelson","Nelson",-41.271,173.284],[152,"NZ","Nelson","Stoke",-41.313,173.233],[153,"NZ","Tasman","Richmond",-41.34,173.183],[154,"NZ","Tasman","Motueka",-41.11,173.01],[155,"NZ","Tasman","Tākaka",-40.852,172.806],[156,"NZ","Marlborough","Blenheim",-41.514,173.96],[157,"NZ","Marlborough","Picton",-41.29,174.006],[158,"NZ","West Coast","Greymouth",-42.45,171.207],[159,"NZ","West Coast","Westport",-41.754,171.602],[160,"NZ","West Coast","Hokitika",-42.717,170.967],[161,"NZ","Canterbury","Christchurch Central",-43.532,172.637],[162,"NZ","Canterbury","Riccarton",-43.53,172.597],[163,"NZ","Canterbury","Fendalton",-43.517,172.597],[164,"NZ","Canterbury","Merivale",-43.513,172.62],[165,"NZ","Canterbury","Papanui",-43.495,172.607],[166,"NZ","Canterbury","Burnside",-43.495,172.57],[167,"NZ","Canterbury","Shirley",-43.505,172.66],[168,"NZ","Canterbury","New Brighton",-43.507,172.73],[169,"NZ","Canterbury","Linwood",-43.535,172.675],[170,"NZ","Canterbury","Sumner",-43.567,172.76],[171,"NZ","Canterbury","Cashmere",-43.57,172.63],[172,"NZ","Canterbury","Halswell",-43.583,172.57],[173,"NZ","Canterbury","Hornby",-43.543,172.525],[174,"NZ","Canterbury","Rolleston",-43.59,172.38],[175,"NZ","Canterbury","Lincoln",-43.64,172.485],[176,"NZ","Canterbury","Rangiora",-43.304,172.596],[177,"NZ","Canterbury","Kaiapoi",-43.378,172.657],[178,"NZ","Canterbury","Darfield",-43.488,172.115],[179,"NZ","Canterbury","Akaroa",-43.804,172.968],[180,"NZ","Canterbury","Ashburton",-43.903,171.746],[181,"NZ","Canterbury","Geraldine",-44.092,171.245],[182,"NZ","Canterbury","Timaru",-44.396,171.254],[183,"NZ","Canterbury","Kaikōura",-42.4,173.68],[184,"NZ","Otago","Dunedin Central",-45.874,170.503],[185,"NZ","Otago","Mosgiel",-45.875,170.35],[186,"NZ","Otago","Port Chalmers",-45.816,170.62],[187,"NZ","Otago","Ōamaru",-45.097,170.97],[188,"NZ","Otago","Queenstown",-45.031,168.663],[189,"NZ","Otago","Frankton",-45.02,168.733],[190,"NZ","Otago","Wānaka",-44.7,169.132],[191,"NZ","Otago","Cromwell",-45.04,169.2],[192,"NZ","Otago","Alexandra",-45.25,169.38],[193,"NZ","Otago","Balclutha",-46.234,169.75],[194,"NZ","Southland","Invercargill",-46.413,168.354],[195,"NZ","Southland","Gore",-46.099,168.943],[196,"NZ","Southland","Winton",-46.143,168.323],[197,"NZ","Southland","Te Anau",-45.414,167.718]];
+const DEMO_PUBLIC_HOLIDAYS = [["2026-12-25","Christmas",null],["2026-12-28","Boxing Day (obs.)",null],["2027-01-01","New Year's Day",null],["2027-01-04","Day after New Year (obs.)",null],["2027-02-08","Waitangi Day (obs.)",null],["2027-03-26","Good Friday",null],["2027-03-29","Easter Monday",null],["2027-04-26","Anzac Day (obs.)",null],["2027-06-07","King's Birthday",null],["2027-06-25","Matariki",null],["2027-10-25","Labour Day",null],["2027-12-27","Christmas (obs.)",null],["2027-12-28","Boxing Day (obs.)",null],["2028-01-03","New Year's Day (obs.)",null],["2028-01-04","Day after New Year (obs.)",null],["2028-02-07","Waitangi Day (obs.)",null],["2027-02-01","Auckland Anniversary","Auckland"],["2027-02-01","Auckland Anniversary","Northland"],["2027-02-01","Auckland Anniversary","Waikato"],["2027-02-01","Auckland Anniversary","Bay of Plenty"],["2027-02-01","Auckland Anniversary","Gisborne"],["2028-01-31","Auckland Anniversary","Auckland"],["2028-01-31","Auckland Anniversary","Northland"],["2028-01-31","Auckland Anniversary","Waikato"],["2028-01-31","Auckland Anniversary","Bay of Plenty"],["2028-01-31","Auckland Anniversary","Gisborne"],["2027-01-25","Wellington Anniversary","Wellington"],["2027-01-25","Wellington Anniversary","Manawatū-Whanganui"],["2028-01-24","Wellington Anniversary","Wellington"],["2028-01-24","Wellington Anniversary","Manawatū-Whanganui"],["2027-02-01","Nelson Anniversary","Nelson"],["2027-02-01","Nelson Anniversary","Tasman"],["2027-02-01","Nelson Anniversary","West Coast"],["2028-01-31","Nelson Anniversary","Nelson"],["2028-01-31","Nelson Anniversary","Tasman"],["2028-01-31","Nelson Anniversary","West Coast"]];
+
+const DEMO_PH = Object.fromEntries(DEMO_PUBLIC_HOLIDAYS.filter(([, , r]) => !r || r === 'Auckland').map(([d, n]) => [d, n]));
 
 // ───────────── Supabase backend ─────────────
 function supaBackend(sb) {
   let user = null;
   const ok = ({ data, error }) => { if (error) throw new Error(error.message); return data; };
+  const soft = async (q, dflt) => { try { return ok(await q); } catch { return dflt; } };
   return {
     demo: false,
     async init() {
@@ -303,38 +376,46 @@ function supaBackend(sb) {
     async signIn(email) { ok(await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin + location.pathname } })); },
     async verify(email, token) { const d = ok(await sb.auth.verifyOtp({ email, token, type: 'email' })); user = d.user; },
     async signOut() { await sb.auth.signOut(); user = null; },
+    async accessToken() { const { data } = await sb.auth.getSession(); return data.session?.access_token || ''; },
+
     async getMe() {
-      const fu = ok(await sb.from('family_users').select('family_id, families(id,name)').eq('user_id', user.id).maybeSingle());
-      if (!fu) return { family: null, groups: [] };
-      const code = ok(await sb.from('family_codes').select('join_code').eq('family_id', fu.family_id).maybeSingle());
-      const gs = ok(await sb.from('group_families').select('role, groups(id,name,invite_code)').eq('family_id', fu.family_id));
-      return { family: { ...fu.families, join_code: code?.join_code }, groups: gs.filter(r => r.groups).map(r => ({ ...r.groups, role: r.role })) };
+      const isAdmin = (await soft(sb.from('app_admins').select('user_id').eq('user_id', user.id), [])).length > 0;
+      const places = await soft(sb.from('places').select('*').order('region').order('name'), []);
+      const pu = await soft(sb.from('provider_users').select('provider_id').eq('user_id', user.id).maybeSingle(), null);
+      const fu = ok(await sb.from('family_users').select('family_id, families(*)').eq('user_id', user.id).maybeSingle());
+      if (!fu) return { family: null, groups: [], providerId: pu?.provider_id || null, isAdmin, places };
+      const code = await soft(sb.from('family_codes').select('join_code, calendar_token').eq('family_id', fu.family_id).maybeSingle(), null);
+      const gs = ok(await sb.from('group_families').select('role, groups(*)').eq('family_id', fu.family_id));
+      return {
+        family: { ...fu.families, join_code: code?.join_code, calendar_token: code?.calendar_token },
+        groups: gs.filter(r => r.groups).map(r => ({ ...r.groups, role: r.role })), providerId: pu?.provider_id || null, isAdmin, places,
+      };
     },
     async createFamily(name) { ok(await sb.rpc('create_family', { p_name: name })); },
     async joinFamily(code) { ok(await sb.rpc('join_family', { p_code: code })); },
-    async updateFamily(id, name) { ok(await sb.from('families').update({ name }).eq('id', id)); },
-    async createGroup(name) {
-      const g = ok(await sb.rpc('create_group', { p_name: name }));
-      await this.saveHolidays(g.id, DEFAULT_HOLIDAYS);
-      return g;
-    },
+    async updateFamily(id, patch) { ok(await sb.from('families').update(patch).eq('id', id)); },
+    async createGroup(name, country, region) { return ok(await sb.rpc('create_group', { p_name: name, p_country: country, p_region: region })); },
+    async updateGroup(id, patch) { ok(await sb.from('groups').update(patch).eq('id', id)); },
     async joinGroup(code) { return ok(await sb.rpc('join_group', { p_code: code })); },
     async leaveGroup(gid, fid) { ok(await sb.from('group_families').delete().eq('group_id', gid).eq('family_id', fid)); },
-    async loadGroup(gid) {
+
+    async loadGroup(gid, country) {
       const holidays = ok(await sb.from('group_holidays').select('*').eq('group_id', gid).order('start_date'));
-      const mem = ok(await sb.from('group_families').select('family_id, role, families(id,name)').eq('group_id', gid));
+      const mem = ok(await sb.from('group_families').select('family_id, role, families(*)').eq('group_id', gid));
       const families = mem.filter(m => m.families).map(m => ({ ...m.families, role: m.role }));
       const fids = families.map(f => f.id);
       const kids = fids.length ? ok(await sb.from('kids').select('*').in('family_id', fids).order('created_at')) : [];
+      const kidIds = kids.map(k => k.id);
       const lo = holidays.reduce((a, h) => (!a || h.start_date < a ? h.start_date : a), null);
       const hi = holidays.reduce((a, h) => (!a || h.end_date > a ? h.end_date : a), null);
-      let plans = [], progs = [];
+      let plans = [], progs = [], bookings = [];
       if (lo && fids.length) {
         plans = ok(await sb.from('day_plans').select('*').in('family_id', fids).gte('date', lo).lte('date', hi));
-        const kidIds = kids.map(k => k.id);
         if (kidIds.length) progs = ok(await sb.from('kid_programmes').select('*').in('kid_id', kidIds).gte('date', lo).lte('date', hi));
+        bookings = await soft(sb.from('care_bookings').select('*').eq('group_id', gid).gte('date', D.add(D.today(), -14)), []);
       }
-      // Sitters (tolerates the sitters.sql migration not having been run yet)
+      const notes = kidIds.length ? await soft(sb.from('kid_notes').select('*').in('kid_id', kidIds), []) : [];
+      const pubHols = await soft(sb.from('public_holidays').select('*').eq('country', country || 'NZ'), []);
       let sitters = [], vouches = [], avail = [], flags = [], sittersMissing = false;
       try {
         sitters = ok(await sb.from('sitters').select('*').eq('group_id', gid).order('created_at'));
@@ -345,8 +426,32 @@ function supaBackend(sb) {
           flags = ok(await sb.from('sitter_flags').select('*').in('sitter_id', sids));
         }
       } catch (e) { sittersMissing = true; }
-      return { holidays, families, kids, plans, progs, sitters, vouches, avail, flags, sittersMissing };
+      return { holidays, families, kids, plans, progs, bookings, notes, pubHols, sitters, vouches, avail, flags, sittersMissing };
     },
+    async saveHolidays(gid, list) {
+      ok(await sb.from('group_holidays').delete().eq('group_id', gid).eq('kind', 'holiday'));
+      if (list.length) ok(await sb.from('group_holidays').insert(list.map(h => ({ group_id: gid, name: h.name, start_date: h.start_date, end_date: h.end_date, note: h.note || null, kind: 'holiday' }))));
+    },
+    async resetHolidays(gid) { ok(await sb.rpc('reset_group_holidays', { p_group: gid })); },
+    async addOneoff(gid, name, start, end) { ok(await sb.rpc('add_oneoff', { p_group: gid, p_name: name, p_start: start, p_end: end })); },
+    async deleteHoliday(id) { ok(await sb.from('group_holidays').delete().eq('id', id)); },
+    async saveKid(k) {
+      const row = { family_id: k.family_id, first_name: k.first_name, birth_month: k.birth_month || null, gender: k.gender || null, interests: k.interests || [] };
+      if (k.id) ok(await sb.from('kids').update(row).eq('id', k.id));
+      else ok(await sb.from('kids').insert(row));
+    },
+    async deleteKid(id) { ok(await sb.from('kids').delete().eq('id', id)); },
+    async saveNote(n) { ok(await sb.from('kid_notes').upsert({ ...n, updated_at: new Date().toISOString() }, { onConflict: 'kid_id' })); },
+    async upsertPlans(rows) { ok(await sb.from('day_plans').upsert(rows.map(r => ({ ...r, updated_at: new Date().toISOString() })), { onConflict: 'family_id,date' })); },
+    async deletePlan(fid, date) { ok(await sb.from('day_plans').delete().eq('family_id', fid).eq('date', date)); },
+    async upsertProgs(rows) { ok(await sb.from('kid_programmes').upsert(rows, { onConflict: 'kid_id,date' })); },
+    async deleteProgs(ids) { ok(await sb.from('kid_programmes').delete().in('id', ids)); },
+    // bookings
+    async createBookings(gid, date, part, kidIds, hostId, note) { return ok(await sb.rpc('create_bookings', { p_group: gid, p_date: date, p_part: part, p_kids: kidIds, p_host: hostId, p_note: note || null })); },
+    async respondBookings(ids, accept) { ok(await sb.rpc('respond_booking', { p_ids: ids, p_accept: accept })); },
+    async cancelBookings(ids) { ok(await sb.rpc('cancel_bookings', { p_ids: ids })); },
+    async urgentCall(gid, date, part, msg) { return ok(await sb.rpc('urgent_call', { p_group: gid, p_date: date, p_part: part, p_message: msg })); },
+    // sitters
     async saveSitter(x) {
       const row = { name: x.name, phone: x.phone || null, email: x.email || null, rate: x.rate || null, max_kids: x.max_kids || null, area: x.area || null, notes: x.notes || null, first_aid: !!x.first_aid, record_check: !!x.record_check };
       if (x.id) { ok(await sb.from('sitters').update(row).eq('id', x.id)); return; }
@@ -364,83 +469,145 @@ function supaBackend(sb) {
     },
     async flagSitter(id, reason) { ok(await sb.rpc('flag_sitter', { p_sitter: id, p_reason: reason })); },
     async restoreSitter(id) { ok(await sb.from('sitters').update({ hidden: false }).eq('id', id)); ok(await sb.from('sitter_flags').delete().eq('sitter_id', id)); },
-    async saveHolidays(gid, list) {
-      ok(await sb.from('group_holidays').delete().eq('group_id', gid));
-      if (list.length) ok(await sb.from('group_holidays').insert(list.map(h => ({ group_id: gid, name: h.name, start_date: h.start_date, end_date: h.end_date, note: h.note || null }))));
+    // programmes near me
+    async nearMe() { return await soft(sb.rpc('programmes_near_me'), []); },
+    async logProvider(id, kind) { await soft(sb.rpc('log_provider_event', { p_provider: id, p_kind: kind }), null); },
+    // providers
+    async registerProvider(name) { ok(await sb.rpc('register_provider', { p_name: name })); },
+    async loadProvider(id) {
+      const provider = ok(await sb.from('providers').select('*').eq('id', id).single());
+      const locations = ok(await sb.from('provider_locations').select('*').eq('provider_id', id));
+      const sessions = ok(await sb.from('provider_sessions').select('*').eq('provider_id', id).order('start_date'));
+      const stats = await soft(sb.rpc('provider_stats'), null);
+      const demand = await soft(sb.rpc('provider_demand'), null);
+      const templates = await soft(sb.from('holiday_templates').select('*').eq('country', provider.country).gte('end_date', D.today()).order('start_date'), []);
+      return { provider, locations, sessions, stats, demand, templates };
     },
-    async saveKid(k) {
-      const row = { family_id: k.family_id, first_name: k.first_name, birth_month: k.birth_month || null, gender: k.gender || null };
-      if (k.id) ok(await sb.from('kids').update(row).eq('id', k.id));
-      else ok(await sb.from('kids').insert(row));
+    async saveProvider(id, patch) { ok(await sb.from('providers').update(patch).eq('id', id)); },
+    async addLocation(row) { ok(await sb.from('provider_locations').insert(row)); },
+    async deleteLocation(id) { ok(await sb.from('provider_locations').delete().eq('id', id)); },
+    async addSession(row) { ok(await sb.from('provider_sessions').insert(row)); },
+    async deleteSession(id) { ok(await sb.from('provider_sessions').delete().eq('id', id)); },
+    async checkout(plan, term) {
+      if (!CONFIG.SERVER_READY) throw new Error('Card payments aren\'t switched on yet. Contact the Co-hortdinate team to upgrade.');
+      const res = await fetch(FUNCTIONS_URL + '/checkout', { method: 'POST', headers: { Authorization: 'Bearer ' + await this.accessToken(), 'Content-Type': 'application/json', apikey: CONFIG.SUPABASE_ANON_KEY }, body: JSON.stringify({ plan, term }) });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error || 'Payment could not start');
+      location.href = d.url;
     },
-    async deleteKid(id) { ok(await sb.from('kids').delete().eq('id', id)); },
-    async upsertPlans(rows) { ok(await sb.from('day_plans').upsert(rows.map(r => ({ ...r, updated_at: new Date().toISOString() })), { onConflict: 'family_id,date' })); },
-    async deletePlan(fid, date) { ok(await sb.from('day_plans').delete().eq('family_id', fid).eq('date', date)); },
-    async upsertProgs(rows) { ok(await sb.from('kid_programmes').upsert(rows, { onConflict: 'kid_id,date' })); },
-    async deleteProgs(ids) { ok(await sb.from('kid_programmes').delete().in('id', ids)); },
+    // app admin
+    async adminProviders() { return ok(await sb.rpc('admin_providers')); },
+    async adminUpdateProvider(id, status, plan, paidUntil, note) { ok(await sb.rpc('admin_update_provider', { p_id: id, p_status: status, p_plan: plan, p_paid_until: paidUntil || null, p_note: note || null })); },
+    calendarUrl(token) { return CONFIG.SERVER_READY && token ? FUNCTIONS_URL + '/calendar?token=' + token : ''; },
   };
 }
 
-// ───────────── Demo backend (browser-only) ─────────────
+// ───────────── Demo backend (browser-only, mirrors the database rules) ─────────────
+const DEMO_HOLIDAYS = [
+  { name: 'Summer 2026/27', start_date: '2026-12-19', end_date: '2027-02-02', note: 'Schools finish by Fri 18 Dec and restart between Thu 28 Jan and Wed 3 Feb — set to your school' },
+  { name: 'Autumn break 2027', start_date: '2027-04-10', end_date: '2027-04-26', note: 'Anzac Day observed Mon 26 Apr' },
+  { name: 'Winter break 2027', start_date: '2027-07-03', end_date: '2027-07-18', note: '' },
+  { name: 'Spring break 2027', start_date: '2027-09-25', end_date: '2027-10-10', note: '' },
+  { name: 'Summer 2027/28', start_date: '2027-12-18', end_date: '2028-02-01', note: 'Provisional — Term 4 ends by Fri 17 Dec; 2028 Term 1 start still to confirm' },
+];
 function demoBackend() {
-  const KEY = 'co-hortdinate-demo-v1';
+  const KEY = 'co-hortdinate-demo-v3';
   let db = store.get(KEY, null);
   const save = () => store.set(KEY, db);
+  const places = DEMO_PLACES.map(([id, country, region, name, lat, lng]) => ({ id, country, region, name, lat, lng }));
+  const placeId = n => places.find(p => p.name === n)?.id;
+  let as = store.get('co-hortdinate-demo-as', 'family');   // demo can preview the provider portal
+  const ME = 'f1';
+  const email = (to, subject) => toast(`📧 Email to ${to}: ${subject} (demo — not really sent)`);
   if (!db) {
-    db = { families: [], groups: [], group_families: [], group_holidays: [], kids: [], day_plans: [], kid_programmes: [] };
-    const fam = (id, name) => db.families.push({ id, name, join_code: id.toUpperCase() + 'CODE' });
-    fam('f1', 'Our family'); fam('f2', 'Sharma whānau'); fam('f3', 'Wilsons'); fam('f4', 'Ngata family');
-    db.groups.push({ id: 'g1', name: 'School mates (demo)', invite_code: 'DEMO2027' });
+    db = { families: [], groups: [], group_families: [], group_holidays: [], kids: [], day_plans: [], kid_programmes: [], care_bookings: [], kid_notes: [],
+      sitters: [], sitter_vouches: [], sitter_availability: [], sitter_flags: [], providers: [], provider_locations: [], provider_sessions: [], provider_events: [] };
+    const fam = (id, name, place, auto = true) => db.families.push({ id, name, join_code: id.toUpperCase() + 'CODE', calendar_token: uid(), place_id: placeId(place), auto_accept: auto, email_reminders: true });
+    fam('f1', 'Our family', 'Mt Albert'); fam('f2', 'Sharma whānau', 'Sandringham', false); fam('f3', 'Wilsons', 'Kingsland'); fam('f4', 'Ngata family', 'Point Chevalier');
+    db.groups.push({ id: 'g1', name: 'School mates (demo)', invite_code: 'DEMO2027', country: 'NZ', region: 'Auckland' });
     ['f1', 'f2', 'f3', 'f4'].forEach((f, i) => db.group_families.push({ group_id: 'g1', family_id: f, role: i ? 'member' : 'admin' }));
-    DEFAULT_HOLIDAYS.forEach(h => db.group_holidays.push({ id: uid(), group_id: 'g1', ...h }));
-    const kid = (id, f, n, b, g) => db.kids.push({ id, family_id: f, first_name: n, birth_month: b, gender: g });
-    kid('k1', 'f1', 'Anaya', '2018-03-01', 'girl'); kid('k2', 'f1', 'Arjun', '2021-06-01', 'boy');
-    kid('k3', 'f2', 'Mia', '2018-09-01', 'girl'); kid('k4', 'f2', 'Leo', '2020-02-01', 'boy');
-    kid('k5', 'f3', 'Ava', '2017-11-01', 'girl');
-    kid('k6', 'f4', 'Tama', '2019-05-01', 'boy'); kid('k7', 'f4', 'Hine', '2016-08-01', 'girl');
-    const plan = (f, from, to, status, capacity = 0, note = '') => D.range(from, to).filter(d => !D.weekend(d) && !PUBLIC_HOLIDAYS[d])
-      .forEach(date => db.day_plans.push({ family_id: f, date, status, capacity, note }));
+    DEMO_HOLIDAYS.forEach(h => db.group_holidays.push({ id: uid(), group_id: 'g1', kind: 'holiday', ...h }));
+    db.group_holidays.push({ id: uid(), group_id: 'g1', kind: 'oneoff', name: 'Teacher-only day', start_date: '2027-03-05', end_date: '2027-03-05', created_by: 'f2' });
+    const kid = (id, f, n, b, g, i) => db.kids.push({ id, family_id: f, first_name: n, birth_month: b, gender: g, interests: i });
+    kid('k1', 'f1', 'Anaya', '2018-03-01', 'girl', ['arts', 'science', 'animals']); kid('k2', 'f1', 'Arjun', '2021-06-01', 'boy', ['sport', 'building']);
+    kid('k3', 'f2', 'Mia', '2018-09-01', 'girl', ['arts', 'dance']); kid('k4', 'f2', 'Leo', '2020-02-01', 'boy', ['sport']);
+    kid('k5', 'f3', 'Ava', '2017-11-01', 'girl', ['coding', 'science']);
+    kid('k6', 'f4', 'Tama', '2019-05-01', 'boy', ['sport', 'outdoors']); kid('k7', 'f4', 'Hine', '2016-08-01', 'girl', ['music', 'culture']);
+    db.kid_notes.push({ kid_id: 'k3', allergies: 'Peanuts (anaphylaxis)', needs: 'EpiPen is in her backpack', pickup: 'Priya (mum) by 5:30pm', emergency: 'Raj 021 555 0101', share_in_email: true });
+    const plan = (f, from, to, status, capacity = 0, note = '', part = 'full') => D.range(from, to).filter(d => !D.weekend(d) && !DEMO_PH[d])
+      .forEach(date => { db.day_plans = db.day_plans.filter(p => !(p.family_id === f && p.date === date)); db.day_plans.push({ family_id: f, date, status, capacity, note, part }); });
     plan('f2', '2027-01-05', '2027-02-02', 'need');
     plan('f2', '2027-01-25', '2027-01-29', 'host', 2, 'Beach most afternoons');
     plan('f3', '2026-12-21', '2027-01-08', 'away');
     plan('f3', '2027-01-11', '2027-01-15', 'host', 3, 'Till 4pm');
     plan('f3', '2027-01-18', '2027-02-02', 'need');
     plan('f4', '2027-01-11', '2027-02-02', 'need');
-    plan('f4', '2027-01-20', '2027-01-22', 'host', 1);
-    const prog = (k, from, to, p) => D.range(from, to).filter(d => !D.weekend(d)).forEach(date => db.kid_programmes.push({ id: uid(), kid_id: k, date, programme: p }));
-    prog('k3', '2027-01-18', '2027-01-20', 'Kelly Club Mt Albert'); prog('k5', '2027-01-18', '2027-01-21', 'Kelly Club Mt Albert');
-    prog('k6', '2027-01-12', '2027-01-14', 'Auckland Zoo holiday programme'); prog('k7', '2027-01-12', '2027-01-14', 'Auckland Zoo holiday programme');
-    save();
-  }
-  if (!db.sitters) {
+    plan('f4', '2027-01-20', '2027-01-22', 'host', 1, '', 'am');
+    const prog = (k, from, to, p, pid) => D.range(from, to).filter(d => !D.weekend(d)).forEach(date => db.kid_programmes.push({ id: uid(), kid_id: k, date, programme: p, provider_id: pid || null }));
+    prog('k3', '2027-01-18', '2027-01-20', 'Kelly Club Mt Albert', 'p1'); prog('k5', '2027-01-18', '2027-01-21', 'Kelly Club Mt Albert', 'p1');
+    prog('k6', '2027-01-12', '2027-01-14', 'Auckland Zoo holiday programme', 'p3'); prog('k7', '2027-01-12', '2027-01-14', 'Auckland Zoo holiday programme', 'p3');
+    const book = (date, kidId, child, host, status, part = 'full') => db.care_bookings.push({ id: uid(), group_id: 'g1', date, part, kid_id: kidId, child_family: child, host_family: host, status, initiated_by: status === 'requested' ? child : host, note: null, updated_at: new Date().toISOString() });
+    book('2027-01-12', 'k3', 'f2', 'f3', 'confirmed'); book('2027-01-12', 'k4', 'f2', 'f3', 'confirmed');
+    book('2027-01-13', 'k6', 'f4', 'f3', 'confirmed', 'pm');
+    book('2027-01-26', 'k6', 'f4', 'f2', 'requested'); book('2027-01-26', 'k7', 'f4', 'f2', 'requested');
+    book('2027-01-21', 'k5', 'f3', 'f4', 'requested', 'am');
+    // things waiting on "Our family" in the demo
+    plan('f1', '2027-01-27', '2027-01-27', 'host', 2, 'Happy to do the pools');
+    book('2027-01-27', 'k6', 'f4', 'f1', 'requested'); book('2027-01-27', 'k7', 'f4', 'f1', 'requested');
+    plan('f1', '2027-01-28', '2027-01-29', 'need');
+    book('2027-01-28', 'k1', 'f1', 'f3', 'offered'); book('2027-01-28', 'k2', 'f1', 'f3', 'offered');
+    db.care_bookings.push({ id: uid(), group_id: 'g1', date: '2027-01-29', part: 'full', kid_id: 'k1', child_family: 'f1', host_family: 'f2', status: 'declined', initiated_by: 'f1', note: null, updated_at: new Date().toISOString() });
     db.sitters = [
       { id: 's1', group_id: 'g1', added_by: 'f2', name: 'Jess T.', phone: '021 000 0001', email: '', rate: '$25/hr', max_kids: 4, area: 'Mt Albert', notes: 'Uni student, home for summer. Great with active kids, happy to do park trips.', first_aid: true, record_check: false, hidden: false },
-      { id: 's2', group_id: 'g1', added_by: 'f4', name: 'Aunty Mere', phone: '021 000 0002', email: '', rate: '$120/day', max_kids: 3, area: 'Sandringham', notes: 'Retired teacher. Prefers full days, can do school-age only.', first_aid: true, record_check: true, hidden: false },
+      { id: 's2', group_id: 'g1', added_by: 'f4', name: 'Aunty Mere', phone: '021 000 0002', email: '', rate: '$120/day', max_kids: 3, area: 'Sandringham', notes: 'Retired teacher. Prefers full days, school-age only.', first_aid: true, record_check: true, hidden: false },
     ];
     db.sitter_vouches = [{ sitter_id: 's1', family_id: 'f2', times_used: 6 }, { sitter_id: 's1', family_id: 'f3', times_used: 2 }, { sitter_id: 's2', family_id: 'f4', times_used: 10 }];
-    db.sitter_availability = [];
     D.range('2027-01-05', '2027-01-15').filter(d => !D.weekend(d)).forEach(date => db.sitter_availability.push({ sitter_id: 's1', date }));
-    D.range('2027-01-25', '2027-02-02').filter(d => !D.weekend(d) && !PUBLIC_HOLIDAYS[d]).forEach(date => db.sitter_availability.push({ sitter_id: 's2', date }));
-    db.sitter_flags = [];
+    D.range('2027-01-25', '2027-02-02').filter(d => !D.weekend(d) && !DEMO_PH[d]).forEach(date => db.sitter_availability.push({ sitter_id: 's2', date }));
+    const prov = (id, name, plan, status, tags, amin, amax, extra, locs, sess) => {
+      db.providers.push({ id, name, plan, status, tags, age_min: amin, age_max: amax, country: 'NZ', paid_until: plan === 'basic' ? null : '2027-12-31', oscar: false, ...extra });
+      locs.forEach(([p, venue, r]) => db.provider_locations.push({ id: uid(), provider_id: id, place_id: placeId(p), venue, radius_km: r }));
+      sess.forEach(([a, b, note]) => db.provider_sessions.push({ id: uid(), provider_id: id, start_date: a, end_date: b, note }));
+    };
+    prov('p1', 'Kelly Club Mt Albert', 'featured', 'approved', ['arts', 'sport', 'trips'], 5, 12,
+      { about: 'Action-packed days with a different theme every week: art studio, mini-Olympics, and a big trip on Fridays.', price_text: '$65/day · $300/week', offer_text: '10% off with code COHORT', booking_url: 'https://example.com/kellyclub', phone: '09 000 1111', oscar: true },
+      [['Mt Albert', 'Mt Albert Primary', 10]], [['2027-01-11', '2027-01-29', 'Weeks 1–3 of January']]);
+    prov('p2', 'Code Camp Kids', 'standard', 'approved', ['coding', 'science', 'building', 'gaming'], 7, 13,
+      { about: 'Make your own game in 3 days. Laptops provided.', price_text: '$195 for 3 days', offer_text: '', booking_url: 'https://example.com/codecamp' },
+      [['Ponsonby', 'Ponsonby Community Centre', 15]], [['2027-01-12', '2027-01-14', 'Game Makers'], ['2027-01-19', '2027-01-21', 'Robots']]);
+    prov('p3', 'Auckland Zoo holiday programme', 'basic', 'approved', ['animals', 'outdoors', 'science'], 6, 12,
+      { booking_url: 'https://example.com/zoo' }, [['Point Chevalier', 'Auckland Zoo', 20]], [['2027-01-05', '2027-01-30', '']]);
+    prov('p4', 'Tauranga Surf Kids', 'featured', 'approved', ['swimming', 'outdoors', 'sport'], 7, 14,
+      { about: 'Surf lessons at the Mount.', booking_url: 'https://example.com/surf' }, [['Mount Maunganui', 'Main Beach', 20]], [['2027-01-05', '2027-01-29', '']]);
+    prov('p5', 'Little Chefs Cooking School', 'basic', 'pending', ['cooking'], 6, 12,
+      { about: 'Kids cook (and eat) lunch every day.', booking_url: 'https://example.com/chefs', email: 'hello@example.com', nzbn: '9429000000000' },
+      [['Grey Lynn', 'Grey Lynn Community Hall', 12]], [['2027-01-11', '2027-01-22', '']]);
     save();
   }
-  const ME = 'f1';
+  const myProv = () => 'p5';
+  const famName = id => db.families.find(f => f.id === id)?.name || 'a family';
+  const kidsTxt = ids => listNames(db.kids.filter(k => ids.includes(k.id)).map(k => k.first_name));
+  const effPlan = p => p.plan !== 'basic' && p.paid_until && p.paid_until >= D.today() ? p.plan : 'basic';
   return {
     demo: true,
+    get demoAs() { return as; },
+    setDemoAs(v) { as = v; store.set('co-hortdinate-demo-as', v); },
     async init() { return { id: 'demo', email: 'demo' }; },
-    async signOut() { try { localStorage.removeItem(KEY); } catch {} location.reload(); },
+    async signOut() { try { localStorage.removeItem(KEY); localStorage.removeItem('co-hortdinate-demo-as'); } catch {} location.reload(); },
     async getMe() {
+      if (as === 'provider') return { family: null, groups: [], providerId: myProv(), isAdmin: false, places };
       const f = db.families.find(f => f.id === ME);
       const groups = db.group_families.filter(gf => gf.family_id === ME).map(gf => ({ ...db.groups.find(g => g.id === gf.group_id), role: gf.role }));
-      return { family: f, groups };
+      return { family: f, groups, providerId: null, isAdmin: true, places };
     },
-    async updateFamily(id, name) { db.families.find(f => f.id === id).name = name; save(); },
-    async createGroup(name) {
-      const g = { id: uid(), name, invite_code: Math.random().toString(36).slice(2, 10).toUpperCase() };
+    async updateFamily(id, patch) { Object.assign(db.families.find(f => f.id === id), patch); save(); },
+    async createGroup(name, country, region) {
+      const g = { id: uid(), name, invite_code: Math.random().toString(36).slice(2, 10).toUpperCase(), country, region };
       db.groups.push(g); db.group_families.push({ group_id: g.id, family_id: ME, role: 'admin' });
-      DEFAULT_HOLIDAYS.forEach(h => db.group_holidays.push({ id: uid(), group_id: g.id, ...h }));
+      DEMO_HOLIDAYS.forEach(h => db.group_holidays.push({ id: uid(), group_id: g.id, kind: 'holiday', ...h }));
       save(); return g;
     },
+    async updateGroup(id, patch) { Object.assign(db.groups.find(g => g.id === id), patch); save(); },
     async joinGroup(code) {
       const g = db.groups.find(g => g.invite_code === code.trim().toUpperCase());
       if (!g) throw new Error('That invite code was not found');
@@ -454,15 +621,83 @@ function demoBackend() {
       const fids = new Set(families.map(f => f.id));
       const kids = db.kids.filter(k => fids.has(k.family_id));
       const kidIds = new Set(kids.map(k => k.id));
+      const g = db.groups.find(x => x.id === gid);
+      const visibleNote = n => db.kids.find(k => k.id === n.kid_id)?.family_id === ME ||
+        db.care_bookings.some(b => b.kid_id === n.kid_id && b.host_family === ME && b.status === 'confirmed');
       return {
         holidays: db.group_holidays.filter(h => h.group_id === gid).sort((a, b) => a.start_date.localeCompare(b.start_date)),
         families, kids,
         plans: db.day_plans.filter(p => fids.has(p.family_id)),
         progs: db.kid_programmes.filter(p => kidIds.has(p.kid_id)),
+        bookings: db.care_bookings.filter(b => b.group_id === gid),
+        notes: db.kid_notes.filter(visibleNote),
+        pubHols: DEMO_PUBLIC_HOLIDAYS.filter(([, , r]) => !r || r === g?.region).map(([date, name, region]) => ({ date, name, region, country: 'NZ' })),
         sitters: db.sitters.filter(x => x.group_id === gid),
         vouches: db.sitter_vouches, avail: db.sitter_availability, flags: db.sitter_flags,
       };
     },
+    async saveHolidays(gid, list) { db.group_holidays = db.group_holidays.filter(h => !(h.group_id === gid && h.kind === 'holiday')).concat(list.map(h => ({ ...h, id: uid(), group_id: gid, kind: 'holiday' }))); save(); },
+    async resetHolidays(gid) { await this.saveHolidays(gid, DEMO_HOLIDAYS); },
+    async addOneoff(gid, name, start, end) { db.group_holidays.push({ id: uid(), group_id: gid, kind: 'oneoff', name, start_date: start, end_date: end, created_by: ME }); save(); },
+    async deleteHoliday(id) { db.group_holidays = db.group_holidays.filter(h => h.id !== id); save(); },
+    async saveKid(k) {
+      if (k.id) Object.assign(db.kids.find(x => x.id === k.id), k);
+      else db.kids.push({ ...k, id: uid() });
+      save();
+    },
+    async deleteKid(id) { db.kids = db.kids.filter(k => k.id !== id); db.kid_programmes = db.kid_programmes.filter(p => p.kid_id !== id); save(); },
+    async saveNote(n) { db.kid_notes = db.kid_notes.filter(x => x.kid_id !== n.kid_id).concat([n]); save(); },
+    async upsertPlans(rows) {
+      for (const r of rows) { db.day_plans = db.day_plans.filter(p => !(p.family_id === r.family_id && p.date === r.date)); db.day_plans.push(r); }
+      save();
+    },
+    async deletePlan(fid, date) { db.day_plans = db.day_plans.filter(p => !(p.family_id === fid && p.date === date)); save(); },
+    async upsertProgs(rows) {
+      for (const r of rows) { db.kid_programmes = db.kid_programmes.filter(p => !(p.kid_id === r.kid_id && p.date === r.date)); db.kid_programmes.push({ id: uid(), ...r }); }
+      save();
+    },
+    async deleteProgs(ids) { const s = new Set(ids); db.kid_programmes = db.kid_programmes.filter(p => !s.has(p.id)); save(); },
+    // bookings — same rules as the database functions
+    async createBookings(gid, date, part, kidIds, hostId, note) {
+      if (!kidIds.length) throw new Error('Pick at least one kid');
+      const byFam = {};
+      for (const kid of db.kids.filter(k => kidIds.includes(k.id))) {
+        if (kid.family_id === hostId) throw new Error('You can\'t host your own kids');
+        let st;
+        if (ME === hostId) st = db.families.find(f => f.id === kid.family_id).auto_accept ? 'confirmed' : 'offered';
+        else if (ME === kid.family_id) st = 'requested';
+        else throw new Error('You can only offer to host, or ask for your own kids');
+        if (db.care_bookings.some(b => b.kid_id === kid.id && b.date === date && b.status === 'confirmed' && partsOverlap(b.part, part))) throw new Error('One of those kids is already booked for that time');
+        db.care_bookings.forEach(b => { if (b.kid_id === kid.id && b.date === date && b.host_family === hostId && ['requested', 'offered'].includes(b.status)) b.status = 'cancelled'; });
+        db.care_bookings.push({ id: uid(), group_id: gid, date, part, kid_id: kid.id, child_family: kid.family_id, host_family: hostId, status: st, initiated_by: ME, note: note || null, updated_at: new Date().toISOString() });
+        (byFam[kid.family_id] ||= { st, kids: [] }).kids.push(kid.id);
+      }
+      save();
+      if (ME === hostId) Object.entries(byFam).forEach(([f, x]) => email(famName(f), x.st === 'confirmed' ? `You'll look after ${kidsTxt(x.kids)} on ${D.short(date)}` : `You offered to look after ${kidsTxt(x.kids)} — waiting for them to accept`));
+      else email(famName(hostId), `${famName(ME)} asked if you can look after ${kidsTxt(kidIds)} on ${D.short(date)}`);
+      return kidIds.length;
+    },
+    async respondBookings(ids, accept) {
+      let other = null, d = null;
+      for (const b of db.care_bookings.filter(b => ids.includes(b.id))) {
+        if (!((b.status === 'requested' && b.host_family === ME) || (b.status === 'offered' && b.child_family === ME))) throw new Error('Nothing to respond to');
+        other = b.status === 'requested' ? b.child_family : b.host_family; d = b.date;
+        b.status = accept ? 'confirmed' : 'declined'; b.updated_at = new Date().toISOString();
+      }
+      save(); if (other) email(famName(other), accept ? `Confirmed for ${D.short(d)}` : `Can't make ${D.short(d)} this time`);
+    },
+    async cancelBookings(ids) {
+      let other = null, d = null;
+      for (const b of db.care_bookings.filter(b => ids.includes(b.id) && ['requested', 'offered', 'confirmed'].includes(b.status))) {
+        other = ME === b.host_family ? b.child_family : b.host_family; d = b.date; b.status = 'cancelled'; b.updated_at = new Date().toISOString();
+      }
+      save(); if (other) email(famName(other), `Cancelled ${D.short(d)}`);
+    },
+    async urgentCall(gid, date, part, msg) {
+      const n = db.group_families.filter(x => x.group_id === gid && x.family_id !== ME).length;
+      email(`${n} families`, `🚨 ${famName(ME)} urgently needs help on ${D.short(date)}`); return n;
+    },
+    // sitters
     async saveSitter(x) {
       if (x.id) { Object.assign(db.sitters.find(y => y.id === x.id), x); save(); return; }
       const id = uid();
@@ -482,52 +717,102 @@ function demoBackend() {
     },
     async flagSitter(id, reason) { db.sitter_flags.push({ id: uid(), sitter_id: id, family_id: ME, reason }); db.sitters.find(x => x.id === id).hidden = true; save(); },
     async restoreSitter(id) { db.sitters.find(x => x.id === id).hidden = false; db.sitter_flags = db.sitter_flags.filter(f => f.sitter_id !== id); save(); },
-    async saveHolidays(gid, list) { db.group_holidays = db.group_holidays.filter(h => h.group_id !== gid).concat(list.map(h => ({ ...h, id: uid(), group_id: gid }))); save(); },
-    async saveKid(k) {
-      if (k.id) Object.assign(db.kids.find(x => x.id === k.id), k);
-      else db.kids.push({ ...k, id: uid() });
-      save();
+    // programmes near me — same location lock as the database
+    async nearMe() {
+      const fam = db.families.find(f => f.id === ME); const here = places.find(p => p.id === fam?.place_id);
+      if (!here) return [];
+      const out = [];
+      for (const p of db.providers.filter(p => p.status === 'approved' && p.country === here.country)) {
+        const locs = db.provider_locations.filter(l => l.provider_id === p.id).map(l => ({ l, pl: places.find(x => x.id === l.place_id) })).filter(x => x.pl);
+        const inRange = locs.filter(x => kmBetween(here, x.pl) <= x.l.radius_km);
+        if (!inRange.length) continue;
+        const plan = effPlan(p), paid = plan !== 'basic';
+        out.push({ id: p.id, name: p.name, plan, tags: p.tags, age_min: p.age_min, age_max: p.age_max, booking_url: p.booking_url, oscar: p.oscar,
+          about: paid ? p.about : null, price_text: paid ? p.price_text : null, offer_text: paid ? p.offer_text : null, phone: paid ? p.phone : null,
+          distance_km: Math.round(Math.min(...inRange.map(x => kmBetween(here, x.pl))) * 10) / 10,
+          venues: inRange.map(x => ({ venue: x.l.venue, place: x.pl.name })),
+          sessions: db.provider_sessions.filter(s => s.provider_id === p.id && s.end_date >= D.today()).map(s => ({ start: s.start_date, end: s.end_date, note: s.note })) });
+      }
+      return out.sort((a, b) => a.distance_km - b.distance_km);
     },
-    async deleteKid(id) { db.kids = db.kids.filter(k => k.id !== id); db.kid_programmes = db.kid_programmes.filter(p => p.kid_id !== id); save(); },
-    async upsertPlans(rows) {
-      for (const r of rows) { db.day_plans = db.day_plans.filter(p => !(p.family_id === r.family_id && p.date === r.date)); db.day_plans.push(r); }
-      save();
+    async logProvider(id, kind) { db.provider_events.push({ provider_id: id, kind, family_id: ME, created_at: new Date().toISOString() }); save(); },
+    // provider portal
+    async registerProvider(name) { throw new Error('In the demo, use "Preview the provider portal" on the Group tab.'); },
+    async loadProvider(id) {
+      const provider = db.providers.find(p => p.id === id);
+      const evs = db.provider_events.filter(e => e.provider_id === id);
+      return {
+        provider, locations: db.provider_locations.filter(l => l.provider_id === id), sessions: db.provider_sessions.filter(s => s.provider_id === id),
+        stats: { views_30: evs.filter(e => e.kind === 'view').length + 214, clicks_30: evs.filter(e => e.kind === 'click').length + 37, views_all: 640, clicks_all: 118, kid_days_booked: 22 },
+        demand: { kids_in_range: 86, by_interest: { cooking: 14, arts: 31, sport: 40, science: 18, animals: 22 } },
+        templates: DEMO_HOLIDAYS.map((h, i) => ({ id: i, ...h })).filter(h => h.end_date >= D.today()),
+      };
     },
-    async deletePlan(fid, date) { db.day_plans = db.day_plans.filter(p => !(p.family_id === fid && p.date === date)); save(); },
-    async upsertProgs(rows) {
-      for (const r of rows) { db.kid_programmes = db.kid_programmes.filter(p => !(p.kid_id === r.kid_id && p.date === r.date)); db.kid_programmes.push({ id: uid(), ...r }); }
-      save();
+    async saveProvider(id, patch) { const p = db.providers.find(p => p.id === id); if (p.status === 'rejected') patch.status = 'pending'; Object.assign(p, patch); save(); },
+    async addLocation(row) { db.provider_locations.push({ id: uid(), ...row }); save(); },
+    async deleteLocation(id) { db.provider_locations = db.provider_locations.filter(l => l.id !== id); save(); },
+    async addSession(row) { db.provider_sessions.push({ id: uid(), ...row }); save(); },
+    async deleteSession(id) { db.provider_sessions = db.provider_sessions.filter(s => s.id !== id); save(); },
+    async checkout(plan, term) {
+      const p = db.providers.find(p => p.id === myProv());
+      if (p.status !== 'approved') throw new Error('Your listing needs to be approved before you can upgrade');
+      const base = p.paid_until && p.paid_until > D.today() ? p.paid_until : D.today();
+      p.plan = plan; p.paid_until = term === 'year' ? D.add(base, 365) : (DEMO_HOLIDAYS.find(h => h.end_date > base)?.end_date || D.add(base, 90));
+      save(); toast(`💳 Demo payment done — ${plan} until ${D.full(p.paid_until)}`);
     },
-    async deleteProgs(ids) { const s = new Set(ids); db.kid_programmes = db.kid_programmes.filter(p => !s.has(p.id)); save(); },
+    // app admin
+    async adminProviders() {
+      return db.providers.map(p => ({ ...p, effective_plan: effPlan(p),
+        locations: db.provider_locations.filter(l => l.provider_id === p.id).map(l => `${places.find(x => x.id === l.place_id)?.name} (${l.radius_km} km)`) }))
+        .sort((a, b) => (b.status === 'pending') - (a.status === 'pending'));
+    },
+    async adminUpdateProvider(id, status, plan, paidUntil, note) {
+      const p = db.providers.find(p => p.id === id);
+      if (status && status !== p.status) email(p.name, status === 'approved' ? 'Your listing is live' : 'About your listing');
+      Object.assign(p, { status: status || p.status, plan: plan || p.plan, paid_until: paidUntil || null, review_note: note || null }); save();
+    },
+    calendarUrl() { return ''; },
   };
 }
 
 // ───────────── State ─────────────
 let API;
 const S = {
-  user: null, family: null, groups: [], groupId: store.get('hh-group', null), g: null,
+  user: null, family: null, groups: [], groupId: store.get('hh-group', null), g: null, places: [], isAdmin: false,
+  providerId: null, pv: null, near: null, adminList: null,
   periodId: null, tab: store.get('hh-tab', 'cal'), showWeekends: store.get('hh-weekends', false),
-  openDay: null, editKid: null, editSitter: null, availFor: null, addingSitter: false, prefill: null, sentTo: null, error: '', busy: false,
+  openDay: null, form: null, editKid: null, notesFor: null, editSitter: null, availFor: null, addingSitter: false,
+  prefill: null, sentTo: null, error: '', busy: false, viewed: new Set(), dismissed: new Set(store.get('hh-dismissed', [])),
+  adminEdit: null, regionPick: null,
 };
 const $app = document.getElementById('app'), $hdr = document.getElementById('hdr'), $nav = document.getElementById('nav');
 
 function indexGroup(raw) {
-  const g = { ...raw, planMap: {}, progMap: {}, famById: {} };
+  const g = { ...raw, planMap: {}, progMap: {}, famById: {}, ph: {} };
   raw.families.forEach(f => g.famById[f.id] = f);
-  raw.plans.forEach(p => g.planMap[p.family_id + '|' + p.date] = p);
+  raw.plans.forEach(p => g.planMap[p.family_id + '|' + p.date] = { part: 'full', ...p });
   raw.progs.forEach(p => g.progMap[p.kid_id + '|' + p.date] = p);
+  const group = S.groups.find(x => x.id === S.groupId);
+  (raw.pubHols || []).filter(h => !h.region || h.region === group?.region).forEach(h => g.ph[h.date] = h.name);
+  g.bookings = raw.bookings || [];
+  g.notes = Object.fromEntries((raw.notes || []).map(n => [n.kid_id, n]));
   g.sitters = raw.sitters || []; g.vouches = raw.vouches || []; g.flags = raw.flags || [];
   g.availSet = new Set((raw.avail || []).map(a => a.sitter_id + '|' + a.date));
+  g.kidById = Object.fromEntries(raw.kids.map(k => [k.id, k]));
   return g;
 }
+const ph = d => S.g?.ph[d];
 async function reloadGroup() {
   if (!S.groupId) { S.g = null; return; }
-  S.g = indexGroup(await API.loadGroup(S.groupId));
+  const group = S.groups.find(x => x.id === S.groupId);
+  S.g = indexGroup(await API.loadGroup(S.groupId, group?.country));
   const today = D.today();
   if (!S.g.holidays.some(h => h.id === S.periodId)) {
-    const next = S.g.holidays.find(h => h.end_date >= today) || S.g.holidays[S.g.holidays.length - 1];
+    const hol = S.g.holidays.filter(h => h.kind !== 'oneoff');
+    const next = hol.find(h => h.end_date >= today) || hol[hol.length - 1] || S.g.holidays[0];
     S.periodId = next?.id || null;
   }
+  S.near = S.family?.place_id ? await API.nearMe() : [];
 }
 async function boot() {
   try {
@@ -538,12 +823,17 @@ async function boot() {
         API = supaBackend(createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY));
       } else API = demoBackend();
       S.user = await API.init();
+      const q = new URLSearchParams(location.search);
+      if (q.get('paid') === '1') { toast('💳 Payment received — your listing will upgrade within a minute.'); history.replaceState(null, '', location.pathname); }
     }
     if (S.user) {
       const me = await API.getMe();
-      S.family = me.family; S.groups = me.groups;
-      if (!S.groups.some(g => g.id === S.groupId)) S.groupId = S.groups[0]?.id || null;
-      await reloadGroup();
+      S.family = me.family; S.groups = me.groups; S.providerId = me.providerId; S.isAdmin = me.isAdmin; S.places = me.places || [];
+      if (S.providerId && !S.family) { S.pv = await API.loadProvider(S.providerId); }
+      else {
+        if (!S.groups.some(g => g.id === S.groupId)) S.groupId = S.groups[0]?.id || null;
+        await reloadGroup();
+      }
     }
   } catch (e) { S.error = e.message || String(e); }
   render();
@@ -551,55 +841,133 @@ async function boot() {
 
 // ───────────── Derived data ─────────────
 const period = () => S.g?.holidays.find(h => h.id === S.periodId);
+const isOneoff = () => period()?.kind === 'oneoff';
 function periodDays(all) {
   const p = period(); if (!p) return [];
-  return D.range(p.start_date, p.end_date).filter(d => all || S.showWeekends || !D.weekend(d));
+  return D.range(p.start_date, p.end_date).filter(d => all || S.showWeekends || isOneoff() || !D.weekend(d));
 }
 const myKids = () => S.g ? S.g.kids.filter(k => k.family_id === S.family.id) : [];
+const placeById = id => S.places.find(p => p.id === id);
+const activeBookings = d => S.g.bookings.filter(b => b.date === d && ['requested', 'offered', 'confirmed'].includes(b.status));
+const confirmedFor = (kidId, d) => S.g.bookings.filter(b => b.kid_id === kidId && b.date === d && b.status === 'confirmed');
+
 function daySummary(date) {
   const g = S.g, need = [], hosts = [], home = [], away = [], unset = [], progs = [];
+  const conf = g.bookings.filter(b => b.date === date && b.status === 'confirmed');
   for (const f of g.families) {
     const fk = g.kids.filter(k => k.family_id === f.id);
     const p = g.planMap[f.id + '|' + date];
     if (!p) { if (fk.length) unset.push(f); continue; }
-    if (p.status === 'need') { for (const k of fk) if (!g.progMap[k.id + '|' + date]) need.push({ k, f }); }
-    else if (p.status === 'host') hosts.push({ f, p });
-    else if (p.status === 'home') home.push(f);
+    if (p.status === 'need') {
+      for (const k of fk) {
+        if (g.progMap[k.id + '|' + date]) continue;
+        const open = partSlots(p.part).filter(sl => !conf.some(b => b.kid_id === k.id && partsOverlap(b.part, sl)));
+        if (open.length) need.push({ k, f, slots: open, part: open.length === 2 ? 'full' : open[0] });
+      }
+    } else if (p.status === 'host') {
+      const rem = {};
+      for (const sl of partSlots(p.part)) rem[sl] = Math.max(0, (p.capacity || 0) - conf.filter(b => b.host_family === f.id && partsOverlap(b.part, sl)).length);
+      hosts.push({ f, p, rem, left: Math.max(...Object.values(rem)) });
+    } else if (p.status === 'home') home.push(f);
     else away.push(f);
   }
   for (const k of g.kids) { const pr = g.progMap[k.id + '|' + date]; if (pr) progs.push({ k, f: g.famById[k.family_id], pr }); }
-  const spots = hosts.reduce((a, h) => a + (h.p.capacity || 0), 0);
-  return { need, hosts, home, away, unset, progs, spots, short: Math.max(0, need.length - spots) };
+  const slot = sl => ({ need: need.filter(x => x.slots.includes(sl)).length, spots: hosts.reduce((a, h) => a + (h.rem[sl] || 0), 0) });
+  const am = slot('am'), pm = slot('pm');
+  const short = Math.max(0, am.need - am.spots, pm.need - pm.spots);
+  const spare = Math.max(0, am.spots - am.need, pm.spots - pm.need);
+  const spots = Math.max(am.spots, pm.spots);
+  const sparePart = (am.spots - am.need) === (pm.spots - pm.need) ? '' : (am.spots - am.need) > (pm.spots - pm.need) ? 'am' : 'pm';
+  const byHost = {};
+  conf.forEach(b => (byHost[b.host_family] ||= []).push(b));
+  const pending = activeBookings(date).filter(b => b.status !== 'confirmed');
+  return { need, hosts, home, away, unset, progs, spots, spare, sparePart, short, am, pm, byHost, pending };
 }
+// Items waiting on *me* to respond, and my own pending asks/offers
+function myInbox() {
+  const me = S.family.id, today = D.today();
+  const act = S.g.bookings.filter(b => b.date >= today && ((b.status === 'requested' && b.host_family === me) || (b.status === 'offered' && b.child_family === me)));
+  const groups = {};
+  act.forEach(b => { const k = [b.status, b.date, b.part, b.status === 'requested' ? b.child_family : b.host_family].join('|'); (groups[k] ||= []).push(b); });
+  return Object.values(groups).sort((a, b) => a[0].date.localeCompare(b[0].date));
+}
+function myBookings() {
+  const me = S.family.id, today = D.today();
+  const list = S.g.bookings.filter(b => b.date >= today && (b.host_family === me || b.child_family === me) && ['requested', 'offered', 'confirmed'].includes(b.status));
+  const groups = {};
+  list.forEach(b => { const k = [b.status, b.date, b.part, b.host_family, b.child_family].join('|'); (groups[k] ||= []).push(b); });
+  return Object.values(groups).sort((a, b) => a[0].date.localeCompare(b[0].date));
+}
+function recentDeclines() {
+  const me = S.family.id, today = D.today();
+  const list = S.g.bookings.filter(b => b.status === 'declined' && b.initiated_by === me && b.date >= today && !S.dismissed.has(b.id));
+  const groups = {};
+  list.forEach(b => { const k = b.date + '|' + b.host_family + '|' + b.child_family; (groups[k] ||= []).push(b); });
+  return Object.values(groups);
+}
+// Programmes near me, ranked: friends going, interest + age match, plan, distance
+function rankedNear() {
+  const kids = myKids(), p = period();
+  const friendsGoing = pr => {
+    const ids = new Set(S.g.progs.filter(x => (x.provider_id === pr.id || x.programme.trim().toLowerCase() === pr.name.trim().toLowerCase()) &&
+      (!p || (x.date >= p.start_date && x.date <= p.end_date)) && S.g.kidById[x.kid_id]?.family_id !== S.family.id).map(x => x.kid_id));
+    return ids.size;
+  };
+  return (S.near || []).map(pr => {
+    const reasons = [];
+    let match = 0;
+    for (const k of kids) {
+      const a = ageOn(k, D.today());
+      if (a != null && (a < pr.age_min || a > pr.age_max)) continue;
+      const common = (k.interests || []).filter(t => (pr.tags || []).includes(t));
+      if (common.length) { match += common.length; reasons.push(`${esc(k.first_name)}: ${common.map(t => INTEREST[t]?.l).filter(Boolean).join(', ')}`); }
+    }
+    const friends = friendsGoing(pr);
+    const score = friends * 3 + match + (pr.plan === 'featured' ? 2.5 : pr.plan === 'standard' ? 1 : 0) - pr.distance_km / 15;
+    return { ...pr, reasons, friends, score };
+  }).sort((a, b) => b.score - a.score);
+}
+const runsOn = (pr, d) => (pr.sessions || []).some(s => d >= s.start && d <= s.end);
 
-// ───────────── Rendering ─────────────
+// ───────────── Rendering: shell ─────────────
 function render() {
-  const p = period();
-  if (!S.user) { $nav.hidden = true; $hdr.innerHTML = '<h1>Co-hortdinate</h1>'; $app.innerHTML = errBox() + viewLogin(); return; }
-  if (!S.family) { $nav.hidden = true; $hdr.innerHTML = '<h1>Co-hortdinate</h1>'; $app.innerHTML = errBox() + viewOnboardFamily(); return; }
-  if (!S.groupId || !S.g) { $nav.hidden = true; $hdr.innerHTML = '<h1>Co-hortdinate</h1>'; $app.innerHTML = errBox() + viewOnboardGroup(); return; }
+  const plain = t => { $nav.hidden = true; $hdr.innerHTML = `<h1>${t || 'Co-hortdinate'}</h1>`; };
+  if (!S.user) { plain(); $app.innerHTML = errBox() + viewLogin(); return; }
+  if (S.pv) { plain('Co-hortdinate <small class="hsub">for providers</small>'); $app.innerHTML = demoBanner() + errBox() + viewProvider(); return; }
+  if (!S.family) { plain(); $app.innerHTML = demoBanner() + errBox() + viewOnboardFamily(); return; }
+  if (!S.groupId || !S.g) { plain(); $app.innerHTML = demoBanner() + errBox() + viewOnboardGroup(); return; }
 
+  const hol = S.g.holidays.filter(h => h.kind !== 'oneoff'), one = S.g.holidays.filter(h => h.kind === 'oneoff' && h.end_date >= D.add(D.today(), -7));
+  const opt = h => `<option value="${h.id}" ${h.id === S.periodId ? 'selected' : ''}>${esc(h.name)}${h.kind === 'oneoff' ? ' · ' + D.short(h.start_date) : ''}</option>`;
   $hdr.innerHTML = `<h1>Co-hortdinate</h1>
     <div class="row">
       ${S.groups.length > 1 ? `<select data-c="group">${S.groups.map(g => `<option value="${g.id}" ${g.id === S.groupId ? 'selected' : ''}>${esc(g.name)}</option>`).join('')}</select>` : ''}
-      <select data-c="period">${S.g.holidays.map(h => `<option value="${h.id}" ${h.id === S.periodId ? 'selected' : ''}>${esc(h.name)}</option>`).join('')}</select>
+      <select data-c="period"><optgroup label="School holidays">${hol.map(opt).join('')}</optgroup>${one.length ? `<optgroup label="One-off days">${one.map(opt).join('')}</optgroup>` : ''}</select>
     </div>`;
   const tabs = [['cal', '📅', 'Calendar'], ['plan', '✏️', 'My plan'], ['progs', '🎨', 'Programmes'], ['sitters', '🧑‍🍼', 'Sitters'], ['family', '👨‍👩‍👧', 'Family'], ['group', '👥', 'Group']];
   $nav.hidden = false;
   $nav.innerHTML = tabs.map(([k, i, l]) => `<button data-a="tab" data-v="${k}" class="${S.tab === k ? 'on' : ''}"><span>${i}</span>${l}</button>`).join('');
-  const banner = API.demo ? `<div class="banner"><b>Demo mode</b> — sample friends, saved in this browser only. Add your Supabase keys to go live.</div>` : '';
-  const views = { cal: viewCalendar, plan: viewPlan, progs: viewProgrammes, sitters: viewSitters, family: viewFamily, group: viewGroup };
-  $app.innerHTML = banner + errBox() + (p || ['group', 'family', 'sitters'].includes(S.tab) ? views[S.tab]() : `<div class="card">No holiday periods set up yet. ${isAdmin() ? 'Add them under Group.' : 'Ask your group admin to add them.'}</div>`);
-  if (S.prefill && S.tab === 'plan') applyPrefill();
+  const views = { cal: viewCalendar, plan: viewPlan, progs: viewProgrammes, sitters: viewSitters, family: viewFamily, group: viewGroup, admin: viewAdmin };
+  const needsPeriod = ['cal', 'plan'].includes(S.tab) && !period();
+  $app.innerHTML = demoBanner() + errBox() + (needsPeriod ? `<div class="card">No holiday dates set up yet. ${isAdmin() ? 'Add them under Group.' : 'Ask your group admin to add them.'}</div>` : (views[S.tab] || viewCalendar)());
+  if (S.prefill && S.tab === 'progs') applyPrefill();
 }
 const errBox = () => S.error ? `<div class="err">${esc(S.error)}</div>` : '';
+const demoBanner = () => API?.demo ? `<div class="banner"><b>Demo mode</b> — sample families, saved in this browser only. Emails are simulated. Add your Supabase keys to go live.</div>` : '';
 const isAdmin = () => S.groups.find(g => g.id === S.groupId)?.role === 'admin';
-const weekendToggle = () => `<label class="toggle"><input type="checkbox" data-c="weekends" ${S.showWeekends ? 'checked' : ''}> Show weekends</label>`;
+const weekendToggle = () => isOneoff() ? '' : `<label class="toggle"><input type="checkbox" data-c="weekends" ${S.showWeekends ? 'checked' : ''}> Show weekends</label>`;
+const regionOptions = (country, sel) => [...new Set(S.places.filter(p => p.country === country).map(p => p.region))].map(r => `<option ${r === sel ? 'selected' : ''}>${esc(r)}</option>`).join('');
+function placePicker(name, selId, country = 'NZ') {
+  const sel = placeById(selId);
+  const region = S.regionPick?.[name] || sel?.region || '';
+  return `<div class="grid2"><div><label>Region</label><select data-c="regionPick" data-v="${name}"><option value="">Choose…</option>${regionOptions(country, region)}</select></div>
+    <div><label>Suburb / town</label><select name="${name}" ${region ? '' : 'disabled'}><option value="">Choose…</option>${S.places.filter(p => p.country === country && p.region === region).map(p => `<option value="${p.id}" ${p.id === selId ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}</select></div></div>`;
+}
 
 function viewLogin() {
   return `<div class="card">
     <h2>Sign in</h2>
-    <p class="muted">Invite-only school holiday planning for your friends. We'll email you a sign-in link (and a 6-digit code if your app is installed on your phone).</p>
+    <p class="muted">Invite-only school holiday planning for your friends. We'll email you a sign-in code.</p>
     <form data-f="signin"><label>Email</label><div class="flex"><input class="grow" name="email" type="email" required value="${esc(S.sentTo || '')}" placeholder="you@example.com"><button ${S.busy ? 'disabled' : ''}>Send</button></div></form>
     ${S.sentTo ? `<form data-f="verify"><label>Code from the email</label><div class="flex"><input class="grow" name="code" inputmode="numeric" autocomplete="one-time-code" placeholder="123456"><button>Sign in</button></div>
       <p class="muted">Or just tap the link in the email.</p></form>` : ''}
@@ -612,6 +980,10 @@ function viewOnboardFamily() {
   <div class="card"><h2>…or join your partner's family</h2>
     <p class="muted">If your partner has already set up your family, enter the family code from their Family tab.</p>
     <form data-f="joinFamily"><div class="flex"><input class="grow" name="code" required placeholder="Family code"><button>Join</button></div></form>
+  </div>
+  <div class="card prog"><h2>Run a holiday programme?</h2>
+    <p class="muted">List your programme so families nearby can find it while they plan the holidays. Use a separate email from any family account.</p>
+    <form data-f="registerProvider"><div class="flex"><input class="grow" name="name" required maxlength="80" placeholder="Programme or business name"><button>Get started</button></div></form>
   </div>`;
 }
 function viewOnboardGroup() {
@@ -619,49 +991,70 @@ function viewOnboardGroup() {
     <form data-f="joinGroup"><label>Invite code</label><div class="flex"><input class="grow" name="code" required placeholder="e.g. 7F3A9C21"><button>Join</button></div></form>
   </div>
   <div class="card"><h2>…or start a new group</h2>
-    <p class="muted">You'll get an invite code to share. NZ school holiday dates are added automatically.</p>
-    <form data-f="createGroup"><div class="flex"><input class="grow" name="name" required maxlength="60" placeholder="e.g. Room 12 parents"><button>Create</button></div></form>
+    <p class="muted">You'll get an invite code to share. School holiday dates for your region are added automatically.</p>
+    ${createGroupForm()}
   </div>`;
 }
+function createGroupForm() {
+  return `<form data-f="createGroup">
+    <label>Group name</label><input name="name" required maxlength="60" placeholder="e.g. Room 12 parents">
+    <div class="grid2"><div><label>Country</label><select name="country">${Object.entries(COUNTRIES).map(([k, v]) => `<option value="${k}" ${k !== 'NZ' ? 'disabled' : ''}>${v}</option>`).join('')}</select></div>
+    <div><label>Region</label><select name="region" required><option value="">Choose…</option>${regionOptions('NZ', '')}</select></div></div>
+    <button style="margin-top:10px">Create group</button></form>`;
+}
 
+// ───────────── Calendar ─────────────
+function inboxCard() {
+  const inbox = myInbox(), declines = recentDeclines();
+  if (!inbox.length && !declines.length) return '';
+  const fam = id => esc(S.g.famById[id]?.name || 'A family');
+  return `<div class="card inbox"><h2>📬 Needs your answer</h2>
+    ${inbox.map(bs => { const b = bs[0], kids = listNames(bs.map(x => esc(S.g.kidById[x.kid_id]?.first_name || ''))), ids = bs.map(x => x.id).join(',');
+      return `<div class="kidrow"><div class="grow">${b.status === 'requested'
+        ? `<b>${fam(b.child_family)}</b> asked if you can look after <b>${kids}</b>`
+        : `<b>${fam(b.host_family)}</b> offered to look after <b>${kids}</b>`}
+        <div class="muted">${D.long(b.date)}${partSuffix(b.part)}${b.note ? ` · “${esc(b.note)}”` : ''}</div></div>
+        <div class="flex col"><button data-a="respond" data-v="${ids}" data-ok="1">Accept</button><button class="link" data-a="respond" data-v="${ids}" data-ok="0">Not this time</button></div></div>`; }).join('')}
+    ${declines.map(bs => { const b = bs[0], ids = bs.map(x => x.id).join(',');
+      return `<div class="kidrow"><div class="grow"><b>${fam(b.host_family === S.family.id ? b.child_family : b.host_family)}</b> can't make <b>${D.short(b.date)}</b> this time.
+        <button class="link" data-a="gotoDay" data-v="${b.date}" style="padding-left:0">See who else has room →</button></div><button class="link" data-a="dismiss" data-v="${ids}">✕</button></div>`; }).join('')}
+  </div>`;
+}
 function viewCalendar() {
   const p = period(), days = periodDays();
   const sums = days.map(d => [d, daySummary(d)]);
   const shortDays = sums.filter(([, s]) => s.short > 0).length;
-  const okDays = sums.filter(([, s]) => s.need.length && !s.short).length;
-  const filled = S.g.families.filter(f => S.g.kids.some(k => k.family_id === f.id) && days.some(d => S.g.planMap[f.id + '|' + d])).length;
-  const withKids = S.g.families.filter(f => S.g.kids.some(k => k.family_id === f.id)).length;
-  // Spare spots: hosting offers on days where offered spots exceed need
+  const okDays = sums.filter(([, s]) => (s.need.length || Object.keys(s.byHost).length) && !s.short).length;
+  const withKids = S.g.families.filter(f => S.g.kids.some(k => k.family_id === f.id));
+  const filled = withKids.filter(f => days.some(d => S.g.planMap[f.id + '|' + d])).length;
+  // spare spots list
   const offers = {};
   for (const [d, sm] of sums) {
-    const free = sm.spots - sm.need.length;
-    if (free <= 0) continue;
-    const hostNames = sm.hosts.map(h => h.f.name).sort().join(', ');
+    if (sm.spare <= 0) continue;
+    const hostNames = sm.hosts.filter(h => h.left > 0).map(h => h.f.name).sort().join(', ');
     const notes = sm.hosts.filter(h => h.p.note).map(h => h.p.note).join('; ');
-    const mine = sm.hosts.some(h => h.f.id === S.family.id);
-    const key = free + '|' + hostNames + '|' + notes;
-    (offers[key] ||= { free, hostNames, notes, mine, dates: [] }).dates.push(d);
+    const key = sm.spare + '|' + sm.sparePart + '|' + hostNames + '|' + notes;
+    (offers[key] ||= { free: sm.spare, part: sm.sparePart, hostNames, notes, mine: sm.hosts.some(h => h.f.id === S.family.id), dates: [] }).dates.push(d);
   }
-  const offerRows = Object.values(offers).flatMap(o => runs(o.dates).map(r => ({ ...o, r })))
-    .sort((a, b) => a.r.start.localeCompare(b.r.start));
-  const spareDays = sums.filter(([, sm]) => sm.spots > sm.need.length).length;
+  const offerRows = Object.values(offers).flatMap(o => runs(o.dates).map(r => ({ ...o, r }))).sort((a, b) => a.r.start.localeCompare(b.r.start));
+  const spareDays = sums.filter(([, sm]) => sm.spare > 0).length;
   const spareCard = offerRows.length ? `<div class="card spare">
       <div class="flex"><h2 class="grow" style="margin:0">Spare spots</h2><span class="pill spare">${spareDays} day${spareDays > 1 ? 's' : ''}</span></div>
       <p class="muted">Still planning your leave? These days already have friends home with room for more kids.</p>
-      ${(S.showAllOffers ? offerRows : offerRows.slice(0, 4)).map(o => `<div class="kidrow"><div class="grow"><b>${runLabel(o.r)}</b><div><span class="pill spare">${o.free} spot${o.free > 1 ? 's' : ''} free</span> <span class="muted">with ${esc(o.hostNames)}${o.notes ? ' · ' + esc(o.notes) : ''}</span></div></div>${o.mine ? '<span class="pill ph">incl. you</span>' : ''}</div>`).join('')}
+      ${(S.showAllOffers ? offerRows : offerRows.slice(0, 4)).map(o => `<div class="kidrow"><div class="grow"><b>${runLabel(o.r)}</b><div><span class="pill spare">${o.free} spare spot${o.free > 1 ? 's' : ''}${partSuffix(o.part)}</span> <span class="muted">with ${esc(o.hostNames)}${o.notes ? ' · ' + esc(o.notes) : ''}</span></div></div>${o.mine ? '<span class="pill ph">incl. you</span>' : ''}</div>`).join('')}
       ${offerRows.length > 4 ? `<button class="link" data-a="toggleOffers">${S.showAllOffers ? 'Show fewer' : `Show all ${offerRows.length}`}</button>` : ''}
     </div>` : '';
-  let html = `<div class="summary"><div><b style="color:var(--need)">${shortDays}</b><span class="muted">days short</span></div>
+  let html = inboxCard() + `<div class="summary"><div><b style="color:var(--need)">${shortDays}</b><span class="muted">days short</span></div>
     <div><b style="color:var(--host)">${okDays}</b><span class="muted">days covered</span></div>
-    <div><b>${filled}/${withKids}</b><span class="muted">families filled in</span></div></div>
+    <div><b>${filled}/${withKids.length}</b><span class="muted">families filled in</span></div></div>
     ${p.note ? `<p class="muted" style="margin:-4px 0 10px">${esc(p.note)}</p>` : ''}
+    ${p.kind === 'oneoff' ? `<p class="muted" style="margin:-4px 0 10px">One-off day added by ${esc(S.g.famById[p.created_by]?.name || 'the group')}.</p>` : ''}
     ${spareCard}
-    <div class="legend"><span class="pill need">● need care</span><span class="pill host">● spare spots</span><span class="pill prog">● at programmes</span><span class="pill ph">−2 short · ✓ covered · +2 spare</span></div>
+    <div class="legend"><span class="pill need">● need care</span><span class="pill host">● spare spots</span><span class="pill prog">● at programmes</span><span class="pill ph">🎌 public holiday</span><span class="pill ph">−2 short · ✓ covered · +2 spare</span></div>
     ${weekendToggle()}`;
-  // Week-by-week grid: one row per week, Mon–Fri (or Mon–Sun), tap a day for detail
   const sumMap = Object.fromEntries(sums);
-  const cols = S.showWeekends ? 7 : 5;
-  let wk = D.add(p.start_date, -((D.dow(p.start_date) + 6) % 7)); // Monday on/before start
+  const cols = S.showWeekends || isOneoff() ? 7 : 5;
+  let wk = D.add(p.start_date, -((D.dow(p.start_date) + 6) % 7));
   html += `<div class="wkhead" style="grid-template-columns:${cols === 7 ? 40 : 56}px repeat(${cols},minmax(0,1fr))"><span></span>${['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].slice(0, cols).map(x => `<span>${x}</span>`).join('')}</div>`;
   let first = true;
   while (wk <= p.end_date) {
@@ -674,15 +1067,16 @@ function viewCalendar() {
     for (const d of wdays) {
       const s = sumMap[d];
       if (d < p.start_date || d > p.end_date || !s) { html += '<div class="cell out"></div>'; continue; }
-      const ph = PUBLIC_HOLIDAYS[d];
-      const spare = s.spots - s.need.length;
-      const cls = s.short ? 'short' : s.need.length ? 'ok' : spare > 0 ? 'spare' : ph ? 'ph' : 'quiet';
+      const hol = ph(d);
+      const arranged = Object.values(s.byHost).flat().length;
+      const cls = s.short ? 'short' : (s.need.length || arranged) ? 'ok' : s.spare > 0 ? 'spare' : hol ? 'ph' : 'quiet';
       const num = D.parse(d).getUTCDate();
-      const mon = first || num === 1 ? `<small>${D.parse(d).toLocaleDateString('en-NZ', { month: 'short', timeZone: 'UTC' })}</small>` : '';
+      const mon = first || num === 1 ? `<small>${D.mon(d)}</small>` : '';
       first = false;
-      html += `<button class="cell ${cls} ${S.openDay === d ? 'sel' : ''}" data-a="openDay" data-v="${d}" title="${esc(ph || '')}">
-        <span class="n">${num}${mon}</span>
-        <span class="big">${s.short ? '−' + s.short : s.need.length ? '✓' : spare > 0 ? '+' + spare : ph ? 'PH' : ''}</span>
+      const pend = s.pending.some(b => (b.status === 'requested' && b.host_family === S.family.id) || (b.status === 'offered' && b.child_family === S.family.id));
+      html += `<button class="cell ${cls} ${S.openDay === d ? 'sel' : ''}" data-a="openDay" data-v="${d}" title="${esc(hol || '')}">
+        <span class="n">${num}${mon}${pend ? '<i class="dot"></i>' : ''}</span>
+        <span class="big">${s.short ? '−' + s.short : (s.need.length || arranged) ? '✓' : s.spare > 0 ? '+' + s.spare : hol ? '🎌' : ''}</span>
         <span class="mini">${s.need.length ? `<i class="dn">${s.need.length}</i>` : ''}${s.spots ? `<i class="ds">${s.spots}</i>` : ''}${s.progs.length ? `<i class="dp">${s.progs.length}</i>` : ''}</span>
       </button>`;
     }
@@ -692,52 +1086,205 @@ function viewCalendar() {
   }
   return html;
 }
+
 function dayDetail(d, s) {
-  const fam = f => esc(f.name);
+  const me = S.family.id, fam = f => esc(f.name), future = d >= D.today();
+  const hol = ph(d);
+  const kidsOf = ids => listNames(ids.map(id => esc(S.g.kidById[id]?.first_name || '')));
+  // group need by family
+  const needBy = {};
+  s.need.forEach(x => (needBy[x.f.id] ||= { f: x.f, items: [] }).items.push(x));
+  const myOpen = s.need.filter(x => x.f.id === me);
   const byProg = {};
   s.progs.forEach(x => (byProg[x.pr.programme] ||= []).push(x));
-  const ph = PUBLIC_HOLIDAYS[d];
+  const nearToday = (S.near || []).length ? rankedNear().filter(pr => pr.plan !== 'basic' && runsOn(pr, d)).slice(0, 3) : [];
+  const sitters = sittersOn(d);
   return `<div class="detail panel">
-    <div class="flex"><b class="grow">${D.parse(d).toLocaleDateString('en-NZ', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' })}${ph ? ` <span class="pill ph">${esc(ph)}</span>` : ''}</b><button class="link" data-a="openDay" data-v="${d}">Close</button></div>
-    <div class="chips" style="margin-top:4px">${s.short ? `<span class="pill need">${s.short} kid${s.short > 1 ? 's' : ''} without a spot</span>` : (s.need.length ? '<span class="pill host">Everyone covered</span>' : '') + (s.spots > s.need.length ? `<span class="pill spare">${s.spots - s.need.length} spare spot${s.spots - s.need.length > 1 ? 's' : ''}</span>` : '') || '<span class="muted">No one needs care (yet)</span>'}</div>
-    ${s.need.length ? `<h4>Need care (${s.need.length})</h4><div class="chips">${s.need.map(x => `<span class="chip">${kidName(x.k, d)} <small>· ${fam(x.f)}</small></span>`).join('')}</div>` : ''}
-    ${s.hosts.length ? `<h4>Hosting</h4><div class="chips">${s.hosts.map(h => `<span class="chip"><b>${fam(h.f)}</b> — ${h.p.capacity} spot${h.p.capacity === 1 ? '' : 's'}${h.p.note ? ` <small>· ${esc(h.p.note)}</small>` : ''}</span>`).join('')}</div>` : ''}
+    <div class="flex"><b class="grow">${D.long(d)}${hol ? ` <span class="pill ph">🎌 ${esc(hol)}</span>` : ''}</b><button class="link" data-a="openDay" data-v="${d}">Close</button></div>
+    <div class="chips" style="margin-top:4px">${s.short ? `<span class="pill need">${s.short} kid${s.short > 1 ? 's' : ''} without a spot</span>` : ''}${(s.need.length && !s.short) ? '<span class="pill host">Enough spots for everyone</span>' : ''}${s.spare > 0 ? `<span class="pill spare">${s.spare} spare spot${s.spare > 1 ? 's' : ''}${partSuffix(s.sparePart)}</span>` : ''}${!s.need.length && !s.spare && !Object.keys(s.byHost).length ? '<span class="muted">No one needs care (yet)</span>' : ''}</div>
+
+    ${s.need.length ? `<h4>Still need care</h4>${Object.values(needBy).map(({ f, items }) => {
+      const kidsHtml = items.map(x => `<span class="chip">${kidName(x.k, d)}${x.part !== 'full' ? ` <small>· ${PARTS[x.part].toLowerCase()}</small>` : ''}</span>`).join('');
+      const form = S.form && S.form.date === d && S.form.type === 'offer' && S.form.fam === f.id ? offerForm(d, f, items) : '';
+      return `<div class="needrow"><div class="flex" style="flex-wrap:wrap"><b>${fam(f)}</b>${kidsHtml}<span class="grow"></span>
+        ${future && f.id !== me && !form ? (s.pending.some(b => b.host_family === me && b.child_family === f.id && b.status === 'offered') ? '<span class="pill ph">⏳ Offer sent</span>' : `<button class="small" data-a="openForm" data-t="offer" data-d="${d}" data-v="${f.id}">🙋 I'll take them</button>`) : ''}
+        ${future && f.id === me ? `<button class="small urgent" data-a="urgent" data-d="${d}">🚨 Urgent call</button>` : ''}</div>${form}</div>`;
+    }).join('')}` : ''}
+
+    ${s.hosts.length ? `<h4>Hosting</h4>${s.hosts.map(h => {
+      const form = S.form && S.form.date === d && S.form.type === 'ask' && S.form.host === h.f.id ? askForm(d, h, myOpen) : '';
+      return `<div class="needrow"><div class="flex" style="flex-wrap:wrap"><span class="chip"><b>${fam(h.f)}</b> — ${h.left} of ${h.p.capacity} spot${h.p.capacity === 1 ? '' : 's'} left${partSuffix(h.p.part)}${h.p.note ? ` <small>· ${esc(h.p.note)}</small>` : ''}</span><span class="grow"></span>
+        ${future && myOpen.length && h.f.id !== me && h.left > 0 && !form ? (s.pending.some(b => b.host_family === h.f.id && b.child_family === me && b.status === 'requested') ? '<span class="pill ph">⏳ Asked</span>' : `<button class="small ghost" data-a="openForm" data-t="ask" data-d="${d}" data-v="${h.f.id}">Ask ${fam(h.f)}</button>`) : ''}</div>${form}</div>`;
+    }).join('')}` : ''}
+
+    ${Object.keys(s.byHost).length ? `<h4>Sorted ✓</h4>${Object.entries(s.byHost).map(([hid, bs]) => {
+      const iHost = hid === me, ids = bs.map(b => b.id);
+      return `<div class="needrow"><div class="flex" style="flex-wrap:wrap"><span class="chip">🏠 <b>${esc(S.g.famById[hid]?.name)}</b> has ${bs.map(b => `${kidName(S.g.kidById[b.kid_id] || { first_name: '?' }, d)}${b.part !== 'full' ? ` <small>${b.part.toUpperCase()}</small>` : ''}`).join(', ')}</span>
+        ${iHost ? `<button class="link" data-a="showNotes" data-v="${ids.join(',')}">📋 Care notes</button>` : ''}</div>
+        ${iHost && S.notesFor === ids.join(',') ? notesPanel(bs.map(b => b.kid_id)) : ''}</div>`;
+    }).join('')}` : ''}
+    ${s.pending.length ? `<p class="muted">⏳ Waiting to hear back: ${s.pending.map(b => `${esc(S.g.famById[b.status === 'requested' ? b.host_family : b.child_family]?.name)} (${esc(S.g.kidById[b.kid_id]?.first_name)})`).join(', ')}</p>` : ''}
+
     ${Object.keys(byProg).length ? `<h4>At programmes</h4>${Object.entries(byProg).map(([p, xs]) => `<div style="margin-bottom:4px"><span class="pill prog">${esc(p)}</span> ${xs.map(x => `<span class="chip">${kidName(x.k, d)} <small>· ${fam(x.f)}</small></span>`).join(' ')}</div>`).join('')}` : ''}
+    ${nearToday.length && future ? `<h4>Programmes running near you</h4><div class="chips">${nearToday.map(pr => `<span class="chip">🎨 <b>${esc(pr.name)}</b>${pr.plan === 'featured' ? ' <small class="feat">Featured</small>' : ''} <small>· ${pr.distance_km} km</small></span>`).join('')}</div><button class="link" data-a="tab" data-v="progs" style="padding-left:0">See programmes →</button>` : ''}
+    ${sitters.length ? `<h4>Sitters free this day ${s.short ? `<span class="pill spare">${s.need.length} kids could share one</span>` : ''}</h4><div class="chips">${sitters.map(x => `<span class="chip">🧑‍🍼 <b>${esc(x.name)}</b>${x.rate ? ` <small>· ${esc(x.rate)}</small>` : ''}${x.max_kids ? ` <small>· up to ${x.max_kids} kids</small>` : ''}</span>`).join('')}</div><button class="link" data-a="tab" data-v="sitters" style="padding-left:0">See sitters & contact details →</button>` : ''}
     ${s.home.length ? `<h4>Home, not hosting</h4><div class="chips">${s.home.map(f => `<span class="chip">${fam(f)}</span>`).join('')}</div>` : ''}
     ${s.away.length ? `<h4>Away</h4><div class="chips">${s.away.map(f => `<span class="chip">${fam(f)}</span>`).join('')}</div>` : ''}
-    ${sittersOn(d).length ? `<h4>Sitters free this day ${s.short ? `<span class="pill spare">${s.need.length} kids could share one</span>` : ''}</h4><div class="chips">${sittersOn(d).map(x => `<span class="chip">🧑‍🍼 <b>${esc(x.name)}</b>${x.rate ? ` <small>· ${esc(x.rate)}</small>` : ''}${x.max_kids ? ` <small>· up to ${x.max_kids} kids</small>` : ''}</span>`).join('')}</div><button class="link" data-a="tab" data-v="sitters" style="padding-left:0">See sitters & contact details →</button>` : ''}
     ${s.unset.length ? `<h4 class="muted">Not filled in yet</h4><div class="chips">${s.unset.map(f => `<span class="chip">${fam(f)}</span>`).join('')}</div>` : ''}
   </div>`;
 }
+const partSelect = sel => `<select name="part">${Object.entries(PARTS).map(([k, v]) => `<option value="${k}" ${k === sel ? 'selected' : ''}>${v}</option>`).join('')}</select>`;
+function offerForm(d, f, items) {
+  const part = items.every(x => x.part === items[0].part) ? items[0].part : 'full';
+  const myPlan = S.g.planMap[S.family.id + '|' + d];
+  return `<form class="inlineform" data-f="offer" data-d="${d}">
+    <div class="flex" style="flex-wrap:wrap">${items.map(x => `<label class="toggle" style="margin:0 10px 0 0"><input type="checkbox" name="kid" value="${x.k.id}" checked> ${esc(x.k.first_name)}</label>`).join('')}</div>
+    <div class="grid2"><div><label>When</label>${partSelect(part)}</div><div><label>Note (optional)</label><input name="note" maxlength="200" placeholder="e.g. drop off from 8:30"></div></div>
+    <p class="muted">${f.auto_accept ? `${esc(f.name)} auto-accept offers, so this will be confirmed straight away.` : `${esc(f.name)} will get an email to accept.`}${myPlan?.status !== 'host' ? ' We\'ll mark you as hosting that day.' : ''}</p>
+    <div class="flex"><button>Offer to take them</button><button type="button" class="link" data-a="closeForm">Cancel</button></div></form>`;
+}
+function askForm(d, h, myOpen) {
+  const part = myOpen.every(x => x.part === myOpen[0].part) ? myOpen[0].part : 'full';
+  return `<form class="inlineform" data-f="ask" data-d="${d}" data-host="${h.f.id}">
+    <div class="flex" style="flex-wrap:wrap">${myOpen.map(x => `<label class="toggle" style="margin:0 10px 0 0"><input type="checkbox" name="kid" value="${x.k.id}" checked> ${esc(x.k.first_name)}</label>`).join('')}</div>
+    <div class="grid2"><div><label>When</label>${partSelect(part)}</div><div><label>Note (optional)</label><input name="note" maxlength="200" placeholder="e.g. can pick up by 4"></div></div>
+    <p class="muted">${esc(h.f.name)} gets an email and can accept with one tap — or say “not this time”, no explanation needed.</p>
+    <div class="flex"><button>Ask ${esc(h.f.name)}</button><button type="button" class="link" data-a="closeForm">Cancel</button></div></form>`;
+}
+function notesPanel(kidIds) {
+  const parts = kidIds.map(id => {
+    const k = S.g.kidById[id], n = S.g.notes[id];
+    if (!n) return `<div><b>${esc(k?.first_name)}</b>: <span class="muted">No care notes${API.demo ? '' : ' visible yet (they appear 2 weeks before the day)'}.</span></div>`;
+    return `<div class="notes"><b>${esc(k.first_name)}</b>${n.allergies ? `<div>⚠️ <b>Allergies:</b> ${esc(n.allergies)}</div>` : ''}${n.needs ? `<div>💊 <b>Needs / medical:</b> ${esc(n.needs)}</div>` : ''}${n.pickup ? `<div>🚗 <b>Pickup:</b> ${esc(n.pickup)}</div>` : ''}${n.emergency ? `<div>☎️ <b>Emergency:</b> ${esc(n.emergency)}</div>` : ''}</div>`;
+  });
+  return `<div class="notesbox">${parts.join('')}</div>`;
+}
 
+// ───────────── My plan ─────────────
+function bookingsCard() {
+  const list = myBookings(); const me = S.family.id;
+  if (!list.length) return '';
+  const fam = id => esc(S.g.famById[id]?.name || '');
+  return `<div class="card"><h2>Your arrangements</h2>
+    ${list.map(bs => { const b = bs[0], ids = bs.map(x => x.id).join(','), kids = listNames(bs.map(x => esc(S.g.kidById[x.kid_id]?.first_name || '')));
+      const iHost = b.host_family === me;
+      const status = b.status === 'confirmed' ? '<span class="pill host">Confirmed</span>' : (b.status === 'requested' && !iHost) || (b.status === 'offered' && iHost) ? '<span class="pill ph">Waiting</span>' : '<span class="pill need">Needs your answer</span>';
+      return `<div class="kidrow"><div class="grow"><b>${D.short(b.date)}</b>${partSuffix(b.part)} · ${iHost ? `you're hosting <b>${kids}</b> (${fam(b.child_family)})` : `<b>${kids}</b> → ${fam(b.host_family)}`}
+        <div>${status}${iHost && b.status === 'confirmed' ? ` <button class="link" data-a="showNotes" data-v="${ids}">📋 Care notes</button>` : ''}</div>
+        ${iHost && S.notesFor === ids ? notesPanel(bs.map(x => x.kid_id)) : ''}</div>
+        <button class="danger" data-a="cancelBooking" data-v="${ids}">Cancel</button></div>`; }).join('')}
+  </div>`;
+}
 function viewPlan() {
   const kids = myKids();
   if (!kids.length) return `<div class="card"><h2>Add your kids first</h2><p>Head to the Family tab and add your kids, then come back to fill in your plan.</p><button data-a="tab" data-v="family">Add kids</button></div>`;
   const p = period(), days = periodDays(), fid = S.family.id;
-  const names = [...new Set(S.g.progs.map(x => x.programme))].sort();
-  // my bookings in this period
+  let html = inboxCard() + bookingsCard() + `<div class="card">
+    <h2>Quick fill</h2>
+    <p class="muted">Set every empty ${isOneoff() ? '' : 'week'}day in ${esc(p.name)} at once (skips public holidays), then tweak individual days below.</p>
+    <div class="flex"><select id="bulkStatus" class="grow">${Object.entries(STATUS).map(([k, v]) => `<option value="${k}">${v.label}</option>`).join('')}</select>
+    <button data-a="bulkFill">Fill empty days</button></div>
+    <p class="muted" style="margin-top:8px">Holiday programme booked? <button class="link" data-a="tab" data-v="progs" style="padding:0">Add it on the Programmes tab →</button></p>
+  </div>
+  <h3 class="muted" style="margin:14px 2px 6px">Day by day</h3>
+  ${weekendToggle()}`;
+  for (const d of days) {
+    const pl = S.g.planMap[fid + '|' + d];
+    const hol = ph(d);
+    const kp = kids.map(k => [k, S.g.progMap[k.id + '|' + d]]).filter(([, x]) => x);
+    const conf = S.g.bookings.filter(b => b.date === d && b.status === 'confirmed' && (b.child_family === fid || b.host_family === fid));
+    html += `<div class="plan"><div class="top">
+      <div class="d">${D.short(d).replace(/ \w+$/, '')}<div class="muted" style="font-weight:400;font-size:11px">${hol ? '🎌 ' + esc(hol) : D.mon(d)}</div></div>
+      <div class="seg grow">${Object.entries(STATUS).map(([k, v]) => `<button class="${k} ${pl?.status === k ? 'on' : ''}" data-a="setStatus" data-d="${d}" data-v="${k}">${v.short}</button>`).join('')}
+      ${pl ? `<button class="x" data-a="clearStatus" data-d="${d}" title="Clear">✕</button>` : ''}</div>
+    </div>
+    ${pl && ['need', 'host'].includes(pl.status) ? `<div class="partrow">${Object.entries(PARTS).map(([k, v]) => `<button class="${pl.part === k ? 'on' : ''}" data-a="setPart" data-d="${d}" data-v="${k}">${v}</button>`).join('')}</div>` : ''}
+    ${pl?.status === 'host' ? `<div class="hostrow"><span class="muted">Extra kids:</span><div class="stepper"><button data-a="cap" data-d="${d}" data-v="-1">−</button><b>${pl.capacity}</b><button data-a="cap" data-d="${d}" data-v="1">+</button></div>
+      <input class="grow" data-c="note" data-d="${d}" value="${esc(pl.note || '')}" maxlength="140" placeholder="Note, e.g. till 3pm, beach trip"></div>` : ''}
+    ${kp.length || conf.length ? `<div class="chips" style="margin-top:6px">${kp.map(([k, x]) => `<span class="pill prog">${esc(k.first_name)} @ ${esc(x.programme)}</span>`).join('')}${conf.map(b => `<span class="pill host">${b.host_family === fid ? `Hosting ${esc(S.g.kidById[b.kid_id]?.first_name)}` : `${esc(S.g.kidById[b.kid_id]?.first_name)} → ${esc(S.g.famById[b.host_family]?.name)}`}${partSuffix(b.part)}</span>`).join('')}</div>` : ''}
+    </div>`;
+  }
+  return html;
+}
+
+// ───────────── Programmes hub ─────────────
+function interestChips(name, selected) {
+  return `<div class="tags">${INTERESTS.map(([k, e, l]) => `<label class="tag"><input type="checkbox" name="${name}" value="${k}" ${selected.includes(k) ? 'checked' : ''}><span>${e} ${l}</span></label>`).join('')}</div>`;
+}
+function listingCard(pr) {
+  const p = period();
+  const sess = (pr.sessions || []).filter(s => !p || (s.end >= p.start_date && s.start <= p.end_date));
+  if (!S.viewed.has(pr.id)) { S.viewed.add(pr.id); API.logProvider(pr.id, 'view'); }
+  const paid = pr.plan !== 'basic';
+  return `<div class="card listing ${pr.plan}">
+    <div class="flex"><div class="grow"><h2 style="margin:0">${esc(pr.name)}</h2>
+      <div class="muted">${pr.distance_km} km away${pr.venues?.[0] ? ` · ${esc(pr.venues[0].venue || pr.venues[0].place)}` : ''} · ages ${pr.age_min}–${pr.age_max}</div></div>
+      ${pr.plan === 'featured' ? '<span class="pill feat">★ Featured</span>' : ''}</div>
+    ${pr.friends ? `<p class="friends">👫 ${pr.friends} kid${pr.friends > 1 ? 's' : ''} from your group ${pr.friends > 1 ? 'are' : 'is'} going</p>` : ''}
+    ${pr.reasons.length ? `<p class="match">✨ Great for ${pr.reasons.join(' · ')}</p>` : ''}
+    ${paid && pr.about ? `<p>${esc(pr.about)}</p>` : ''}
+    <div class="chips">${(pr.tags || []).map(t => `<span class="chip">${INTEREST[t]?.e || ''} ${esc(INTEREST[t]?.l || t)}</span>`).join('')}${pr.oscar ? '<span class="chip">✅ OSCAR approved (WINZ subsidy)</span>' : ''}</div>
+    ${paid && pr.price_text ? `<p><b>${esc(pr.price_text)}</b></p>` : ''}
+    ${paid && sess.length ? `<p class="muted">Running: ${sess.map(s => `${s.start === s.end ? D.short(s.start) : D.short(s.start) + ' – ' + D.short(s.end)}${s.note ? ' (' + esc(s.note) + ')' : ''}`).join(', ')}</p>` : ''}
+    ${paid && pr.offer_text ? `<p class="offer">🎁 Co-hortdinate offer: <b>${esc(pr.offer_text)}</b></p>` : ''}
+    <div class="flex" style="flex-wrap:wrap;margin-top:8px">
+      ${pr.booking_url ? `<a class="btn" href="${esc(withRef(pr.booking_url))}" target="_blank" rel="noopener" data-a="clickProvider" data-v="${pr.id}">Book on their website ↗</a>` : ''}
+      ${paid && pr.phone ? `<a class="btn ghost" href="tel:${esc(pr.phone.replace(/[^\d+]/g, ''))}">📞 ${esc(pr.phone)}</a>` : ''}
+      <button class="ghost" data-a="addFromListing" data-v="${pr.id}">+ Add to our plan</button>
+    </div>
+  </div>`;
+}
+function withRef(u) { try { const x = new URL(u); x.searchParams.set('ref', 'cohortdinate'); return x.toString(); } catch { return u; } }
+
+function viewProgrammes() {
+  const p = period();
+  const fam = S.family;
+  let near = '';
+  if (!fam.place_id) {
+    near = `<div class="card prog"><h2>Programmes near you</h2><p class="muted">Tell us roughly where you live and we'll show holiday programmes nearby. Only your suburb is shared with your groups — never your address.</p>
+      <form data-f="setPlace">${placePicker('place', null)}<button style="margin-top:10px">Save</button></form></div>`;
+  } else {
+    const list = rankedNear();
+    const here = placeById(fam.place_id);
+    near = `<div class="sectionhead"><h2>Near ${esc(here?.name || 'you')}</h2><button class="link" data-a="tab" data-v="family">Change</button></div>` +
+      (list.length ? list.map(listingCard).join('') : `<div class="card"><p>No holiday programmes are listed near you yet.</p><p class="muted">Know a great one? Tell them about Co-hortdinate — listing is free.</p></div>`);
+  }
+  // Friends going (this holiday)
+  let friends = '';
+  if (p) {
+    const list = S.g.progs.filter(x => x.date >= p.start_date && x.date <= p.end_date);
+    const byProg = {};
+    list.forEach(x => { const key = x.programme.trim().toLowerCase(); (byProg[key] ||= { name: x.programme, pid: x.provider_id, rows: [] }).rows.push(x); });
+    friends = `<div class="sectionhead"><h2>Where your group is going</h2></div>` + (Object.keys(byProg).length ? Object.values(byProg).sort((a, b) => b.rows.length - a.rows.length).map(pg => {
+      const dates = [...new Set(pg.rows.map(r => r.date))].sort();
+      const kidsIn = new Set(pg.rows.map(r => r.kid_id));
+      return `<div class="card prog"><div class="flex"><h2 class="grow" style="margin:0">${esc(pg.name)}</h2><span class="pill prog">${kidsIn.size} kid${kidsIn.size > 1 ? 's' : ''}</span></div>
+        ${dates.map(d => `<div class="kidrow"><div style="width:110px;font-weight:600;font-size:14px">${D.short(d)}</div><div class="chips grow">${pg.rows.filter(r => r.date === d).map(r => { const k = S.g.kidById[r.kid_id]; return k ? `<span class="chip">${kidName(k, d)} <small>· ${esc(S.g.famById[k.family_id]?.name)}</small></span>` : ''; }).join('')}</div></div>`).join('')}
+        <div style="margin-top:8px"><button class="ghost" data-a="bookSame" data-v="${esc(pg.name)}" data-pid="${pg.pid || ''}" data-from="${dates[0]}" data-to="${dates[dates.length - 1]}">Book my kids for these days</button></div>
+      </div>`;
+    }).join('') : `<div class="card"><p class="muted">No one has added a programme for ${esc(p.name)} yet.</p></div>`);
+  }
+  return near + friends + (p ? bookingSection(p) : '');
+}
+function bookingSection(p) {
+  const kids = myKids();
+  if (!kids.length) return '';
+  const names = [...new Set(S.g.progs.map(x => x.programme).concat((S.near || []).map(x => x.name)))].sort();
   const mine = S.g.progs.filter(x => kids.some(k => k.id === x.kid_id) && x.date >= p.start_date && x.date <= p.end_date);
   const groups = {};
   mine.forEach(x => (groups[x.kid_id + '|' + x.programme] ||= []).push(x));
-  const bookingRows = Object.entries(groups).flatMap(([key, xs]) => {
-    const [kidId, prog] = [key.slice(0, key.indexOf('|')), key.slice(key.indexOf('|') + 1)];
+  const rows = Object.entries(groups).flatMap(([key, xs]) => {
+    const kidId = key.slice(0, key.indexOf('|')), prog = key.slice(key.indexOf('|') + 1);
     const k = kids.find(k => k.id === kidId);
     return runs(xs.map(x => x.date)).map(r => {
       const ids = xs.filter(x => r.dates.includes(x.date)).map(x => x.id);
       return `<div class="kidrow"><div class="grow"><b>${esc(k.first_name)}</b> · ${esc(prog)}<div class="muted">${runLabel(r)} · ${r.dates.length} day${r.dates.length > 1 ? 's' : ''}</div></div><button class="danger" data-a="delProgs" data-v="${ids.join(',')}">Remove</button></div>`;
     });
   });
-
-  let html = `<div class="card">
-    <h2>Quick fill</h2>
-    <p class="muted">Set every empty weekday in ${esc(p.name)} at once (skips public holidays), then tweak individual days below.</p>
-    <div class="flex"><select id="bulkStatus" class="grow">${Object.entries(STATUS).map(([k, v]) => `<option value="${k}">${v.label}</option>`).join('')}</select>
-    <button data-a="bulkFill">Fill empty days</button></div>
-  </div>
-  <div class="card prog">
-    <h2>Programmes & other arrangements</h2>
-    <p class="muted">Holiday programmes, grandparents, etc. Kids booked here don't count as needing care, and friends can see who's going where.</p>
+  return `<div class="sectionhead"><h2>Your programme bookings</h2></div><div class="card prog">
+    <p class="muted">Booked a holiday programme or other arrangement (like grandparents)? Add it here so those days don't count as needing care, and friends can book alongside.</p>
     <form data-f="addProg" id="progForm">
+      <input type="hidden" name="provider_id">
       <label>Which kids</label><div class="flex" style="flex-wrap:wrap">${kids.map(k => `<label class="toggle" style="margin:0 10px 0 0"><input type="checkbox" name="kid" value="${k.id}" checked> ${esc(k.first_name)}</label>`).join('')}</div>
       <label>Programme or arrangement</label><input name="programme" list="progNames" required maxlength="80" placeholder="e.g. Kelly Club Mt Albert">
       <datalist id="progNames">${names.map(n => `<option value="${esc(n)}">`).join('')}</datalist>
@@ -746,103 +1293,17 @@ function viewPlan() {
       <label class="toggle" style="margin-top:8px"><input type="checkbox" name="weekdays" checked> Weekdays only, skip public holidays</label>
       <button>Add booking</button>
     </form>
-    ${bookingRows.length ? `<h3>Booked this holiday</h3>${bookingRows.join('')}` : ''}
-  </div>
-  <h3 class="muted" style="margin:14px 2px 6px">Day by day</h3>
-  ${weekendToggle()}`;
-  for (const d of days) {
-    const pl = S.g.planMap[fid + '|' + d];
-    const ph = PUBLIC_HOLIDAYS[d];
-    const kp = kids.map(k => [k, S.g.progMap[k.id + '|' + d]]).filter(([, x]) => x);
-    html += `<div class="plan"><div class="top">
-      <div class="d">${D.short(d).replace(/ \w+$/, '')}<div class="muted" style="font-weight:400;font-size:11px">${ph ? esc(ph) : D.parse(d).toLocaleDateString('en-NZ', { month: 'short', timeZone: 'UTC' })}</div></div>
-      <div class="seg grow">${Object.entries(STATUS).map(([k, v]) => `<button class="${k} ${pl?.status === k ? 'on' : ''}" data-a="setStatus" data-d="${d}" data-v="${k}">${v.short}</button>`).join('')}
-      ${pl ? `<button class="x" data-a="clearStatus" data-d="${d}" title="Clear">✕</button>` : ''}</div>
-    </div>
-    ${pl?.status === 'host' ? `<div class="hostrow"><span class="muted">Extra kids:</span><div class="stepper"><button data-a="cap" data-d="${d}" data-v="-1">−</button><b>${pl.capacity}</b><button data-a="cap" data-d="${d}" data-v="1">+</button></div>
-      <input class="grow" data-c="note" data-d="${d}" value="${esc(pl.note || '')}" maxlength="140" placeholder="Note, e.g. till 3pm, beach trip"></div>` : ''}
-    ${kp.length ? `<div class="chips" style="margin-top:6px">${kp.map(([k, x]) => `<span class="pill prog">${esc(k.first_name)} @ ${esc(x.programme)}</span>`).join('')}</div>` : ''}
-    </div>`;
-  }
-  return html;
+    ${rows.length ? `<h3>Booked in ${esc(p.name)}</h3>${rows.join('')}` : ''}
+  </div>`;
 }
 function applyPrefill() {
   const f = document.getElementById('progForm'); if (!f) return;
-  f.programme.value = S.prefill.programme; f.from.value = S.prefill.from; f.to.value = S.prefill.to;
+  f.programme.value = S.prefill.programme; f.provider_id.value = S.prefill.provider_id || '';
+  if (S.prefill.from) f.from.value = S.prefill.from;
+  if (S.prefill.to) f.to.value = S.prefill.to;
   f.scrollIntoView({ behavior: 'smooth', block: 'center' });
   S.prefill = null;
 }
-
-function viewProgrammes() {
-  const p = period();
-  const list = S.g.progs.filter(x => x.date >= p.start_date && x.date <= p.end_date);
-  if (!list.length) return `<div class="card"><h2>Programmes</h2><p>No one has added a holiday programme for ${esc(p.name)} yet.</p><p class="muted">Add your kids' bookings in My plan — friends can then book the same programme on the same days.</p><button data-a="tab" data-v="plan">Add a booking</button></div>`;
-  const byProg = {};
-  list.forEach(x => { const key = x.programme.trim().toLowerCase(); (byProg[key] ||= { name: x.programme, rows: [] }).rows.push(x); });
-  const kidById = Object.fromEntries(S.g.kids.map(k => [k.id, k]));
-  return `<p class="muted" style="margin:0 2px 10px">Who's going where in ${esc(p.name)}. Programmes fill up fast — book early if you want your kids together.</p>` +
-    Object.values(byProg).sort((a, b) => b.rows.length - a.rows.length).map(pg => {
-      const dates = [...new Set(pg.rows.map(r => r.date))].sort();
-      const kidsIn = new Set(pg.rows.map(r => r.kid_id));
-      return `<div class="card prog"><div class="flex"><h2 class="grow" style="margin:0">${esc(pg.name)}</h2><span class="pill prog">${kidsIn.size} kid${kidsIn.size > 1 ? 's' : ''}</span></div>
-        ${dates.map(d => `<div class="kidrow"><div style="width:110px;font-weight:600;font-size:14px">${D.short(d)}</div><div class="chips grow">${pg.rows.filter(r => r.date === d).map(r => { const k = kidById[r.kid_id]; return k ? `<span class="chip">${kidName(k, d)} <small>· ${esc(S.g.famById[k.family_id]?.name)}</small></span>` : ''; }).join('')}</div></div>`).join('')}
-        <div style="margin-top:8px"><button class="ghost" data-a="bookSame" data-v="${esc(pg.name)}" data-from="${dates[0]}" data-to="${dates[dates.length - 1]}">Book my kids for these days</button></div>
-      </div>`;
-    }).join('');
-}
-
-function viewFamily() {
-  const kids = S.g ? myKids() : [];
-  const ek = S.editKid ? kids.find(k => k.id === S.editKid) : null;
-  return `<div class="card"><h2>Your family</h2>
-    <form data-f="renameFamily"><label>Family name (shown to your groups)</label><div class="flex"><input class="grow" name="name" required maxlength="60" value="${esc(S.family.name)}"><button>Save</button></div></form>
-    ${S.family.join_code ? `<label>Partner code</label><span class="code">${esc(S.family.join_code)}</span>
-    <p class="muted">Your partner signs in with their own email and enters this code to share your family's plan. Don't share it outside your household.</p>` : ''}
-  </div>
-  <div class="card"><h2>Kids</h2>
-    ${kids.map(k => `<div class="kidrow"><div class="grow"><b>${kidName(k)}</b> <span class="muted">${k.gender ? ({ girl: 'girl', boy: 'boy', other: '' }[k.gender] || '') : ''}</span></div>
-      <button class="link" data-a="editKid" data-v="${k.id}">Edit</button><button class="danger" data-a="delKid" data-v="${k.id}">Remove</button></div>`).join('') || '<p class="muted">No kids added yet.</p>'}
-    <h3>${ek ? 'Edit ' + esc(ek.first_name) : 'Add a kid'}</h3>
-    <form data-f="saveKid">
-      <input type="hidden" name="id" value="${ek?.id || ''}">
-      <label>First name</label><input name="first_name" required maxlength="40" value="${esc(ek?.first_name || '')}">
-      <div class="grid2"><div><label>Birth month (for age)</label><input type="month" name="birth_month" value="${ek?.birth_month ? ek.birth_month.slice(0, 7) : ''}"></div>
-      <div><label>Gender (optional)</label><select name="gender"><option value="">—</option>${['girl', 'boy', 'other'].map(g => `<option value="${g}" ${ek?.gender === g ? 'selected' : ''}>${g[0].toUpperCase() + g.slice(1)}</option>`).join('')}</select></div></div>
-      <div class="flex" style="margin-top:10px"><button>${ek ? 'Save' : 'Add'}</button>${ek ? '<button type="button" class="link" data-a="cancelKid">Cancel</button>' : ''}</div>
-    </form>
-    <p class="muted">First names only. Only families in your groups can see this.</p>
-  </div>`;
-}
-
-function viewGroup() {
-  const g = S.groups.find(x => x.id === S.groupId);
-  const admin = isAdmin();
-  const others = S.groups.filter(x => x.id !== S.groupId);
-  return `<div class="card"><h2>${esc(g.name)}</h2>
-    <label>Invite code</label><div class="flex"><span class="code">${esc(g.invite_code)}</span><button class="ghost" data-a="copyInvite">Copy invite</button></div>
-    <p class="muted">Share only with families you trust — anyone with the code can join and see the group's kids and plans.</p>
-    <h3>Families (${S.g.families.length})</h3>
-    ${S.g.families.map(f => { const n = S.g.kids.filter(k => k.family_id === f.id).length; return `<div class="kidrow"><div class="grow"><b>${esc(f.name)}</b>${f.id === S.family.id ? ' <span class="muted">(you)</span>' : ''}<div class="muted">${n} kid${n === 1 ? '' : 's'}</div></div>${f.role === 'admin' ? '<span class="pill ph">admin</span>' : ''}</div>`; }).join('')}
-  </div>
-  <div class="card"><h2>Holiday dates</h2>
-    ${admin ? `<p class="muted">Official NZ dates are pre-filled. Term 1 start and Term 4 finish vary by school — adjust the summer dates to match your kids' school.</p>
-      <form data-f="saveHolidays">
-        ${S.g.holidays.map((h, i) => holRow(h, i)).join('')}
-        <div id="newHol"></div>
-        <div class="flex" style="margin-top:8px;flex-wrap:wrap"><button type="button" class="ghost" data-a="addHol">+ Add period</button><button>Save dates</button><button type="button" class="link" data-a="resetHols">Reset to NZ defaults</button></div>
-      </form>`
-    : S.g.holidays.map(h => `<div class="kidrow"><div class="grow"><b>${esc(h.name)}</b><div class="muted">${D.short(h.start_date)} – ${D.short(h.end_date)}</div></div></div>`).join('') + '<p class="muted">Only the group admin can change these.</p>'}
-  </div>
-  <div class="card"><h2>Other groups</h2>
-    ${others.map(o => `<div class="kidrow"><div class="grow">${esc(o.name)}</div><button class="link" data-a="switchGroup" data-v="${o.id}">Open</button></div>`).join('')}
-    <form data-f="joinGroup"><label>Join with invite code</label><div class="flex"><input class="grow" name="code" required><button>Join</button></div></form>
-    <form data-f="createGroup"><label>Start a new group</label><div class="flex"><input class="grow" name="name" required maxlength="60"><button>Create</button></div></form>
-  </div>
-  <div class="card"><div class="flex" style="flex-wrap:wrap"><button class="danger" data-a="leaveGroup">Leave ${esc(g.name)}</button><span class="grow"></span>${API.demo ? '<button class="link" data-a="signOut">Reset demo data</button>' : '<button class="link" data-a="signOut">Sign out</button>'}</div></div>`;
-}
-const holRow = (h, i) => `<div class="holrow" data-hol>
-  <input name="hname" value="${esc(h.name)}" required placeholder="Name"><input type="date" name="hstart" value="${h.start_date}" required><input type="date" name="hend" value="${h.end_date}" required>
-  <button type="button" class="danger" data-a="rmHol">✕</button><input type="hidden" name="hnote" value="${esc(h.note || '')}"></div>`;
 
 // ───────────── Sitters ─────────────
 function sittersOn(d) { return S.g.sitters.filter(x => !x.hidden && S.g.availSet.has(x.id + '|' + d)); }
@@ -914,16 +1375,327 @@ function sitterForm(x) {
   </form></div>`;
 }
 
+
+// ───────────── Family ─────────────
+function viewFamily() {
+  const kids = S.g ? myKids() : [];
+  const ek = S.editKid && S.editKid !== 'new' ? kids.find(k => k.id === S.editKid) : null;
+  const fam = S.family, here = placeById(fam.place_id);
+  const calUrl = API.calendarUrl(fam.calendar_token);
+  return `<div class="card"><h2>Your family</h2>
+    <form data-f="renameFamily"><label>Family name (shown to your groups)</label><div class="flex"><input class="grow" name="name" required maxlength="60" value="${esc(fam.name)}"><button>Save</button></div></form>
+    ${fam.join_code ? `<label>Partner code</label><span class="code">${esc(fam.join_code)}</span>
+    <p class="muted">Your partner signs in with their own email and enters this code to share your family's plan. Don't share it outside your household.</p>` : ''}
+  </div>
+  <div class="card"><h2>Kids</h2>
+    ${kids.map(k => `<div class="kidrow wrap"><div class="grow"><b>${kidName(k)}</b> <span class="muted">${k.gender && k.gender !== 'other' ? k.gender : ''}</span>
+        <div class="chips" style="margin-top:3px">${(k.interests || []).map(t => `<span class="chip small">${INTEREST[t]?.e || ''} ${esc(INTEREST[t]?.l || t)}</span>`).join('') || '<span class="muted">No interests picked yet</span>'}</div>
+        ${S.g.notes[k.id] ? '<div class="muted">📋 Care notes added' + (S.g.notes[k.id].share_in_email ? ' · included in host emails' : '') + '</div>' : ''}</div>
+      <div class="flex col"><button class="link" data-a="editKid" data-v="${k.id}">Edit</button><button class="link" data-a="editNotes" data-v="${k.id}">📋 Notes</button><button class="danger" data-a="delKid" data-v="${k.id}">Remove</button></div></div>
+      ${S.notesFor === 'kid:' + k.id ? notesForm(k) : ''}`).join('') || '<p class="muted">No kids added yet.</p>'}
+    ${S.editKid ? `<h3>${ek ? 'Edit ' + esc(ek.first_name) : 'Add a kid'}</h3>
+    <form data-f="saveKid">
+      <input type="hidden" name="id" value="${ek?.id || ''}">
+      <label>First name</label><input name="first_name" required maxlength="40" value="${esc(ek?.first_name || '')}">
+      <div class="grid2"><div><label>Birth month (for age)</label><input type="month" name="birth_month" value="${ek?.birth_month ? ek.birth_month.slice(0, 7) : ''}"></div>
+      <div><label>Gender (optional)</label><select name="gender"><option value="">—</option>${['girl', 'boy', 'other'].map(g => `<option value="${g}" ${ek?.gender === g ? 'selected' : ''}>${g[0].toUpperCase() + g.slice(1)}</option>`).join('')}</select></div></div>
+      <label>What are they into? (helps match holiday programmes)</label>${interestChips('interest', ek?.interests || [])}
+      <div class="flex" style="margin-top:10px"><button>${ek ? 'Save' : 'Add'}</button><button type="button" class="link" data-a="cancelKid">Cancel</button></div>
+    </form>` : '<button class="ghost" data-a="editKid" data-v="new" style="margin-top:8px">+ Add a kid</button>'}
+    <p class="muted">First names only. Only families in your groups can see your kids. Care notes are only ever shown to a family who has confirmed they're looking after that child.</p>
+  </div>
+  <div class="card"><h2>Where you live</h2>
+    <p class="muted">Used to show holiday programmes nearby. Just your suburb — never your address.${here ? ` Currently: <b>${esc(here.name)}, ${esc(here.region)}</b>.` : ''}</p>
+    <form data-f="setPlace">${placePicker('place', fam.place_id)}<button style="margin-top:10px">Save</button></form>
+  </div>
+  <div class="card"><h2>Preferences</h2>
+    <label class="toggle"><input type="checkbox" data-c="autoAccept" ${fam.auto_accept ? 'checked' : ''}> <span><b>Auto-accept offers.</b> When a family in our group offers to look after our kids, confirm it straight away.</span></label>
+    <label class="toggle"><input type="checkbox" data-c="emailReminders" ${fam.email_reminders ? 'checked' : ''}> <span><b>Reminder emails</b> — holidays coming up, plan not filled in. (Booking emails and next-day summaries always come through.)</span></label>
+  </div>
+  <div class="card"><h2>Add to your phone calendar</h2>
+    ${calUrl ? `<p class="muted">Subscribe once and your arrangements (who's got the kids, who you're hosting, programmes) stay up to date in Google or Apple Calendar.</p>
+      <div class="flex" style="flex-wrap:wrap"><a class="btn" href="${esc(calUrl.replace(/^https:/, 'webcal:'))}">📅 Subscribe (iPhone / Mac)</a><button class="ghost" data-a="copyCal">Copy link for Google Calendar</button></div>
+      <p class="muted" style="font-size:12px">Google Calendar: Other calendars → + → From URL → paste. Keep this link private.</p>`
+    : `<p class="muted">Download your arrangements as a calendar file and open it to add them to your phone's calendar.${API.demo ? '' : ' (Live subscriptions switch on once the server function is set up.)'}</p>`}
+    <button class="ghost" data-a="downloadIcs">⬇️ Download calendar file</button>
+  </div>`;
+}
+function notesForm(k) {
+  const n = S.g.notes[k.id] || {};
+  return `<form class="inlineform" data-f="saveNotes" data-v="${k.id}">
+    <p class="muted">Only shown to a family who has <b>confirmed</b> they're looking after ${esc(k.first_name)}, from 2 weeks before the day.</p>
+    <label>Allergies</label><input name="allergies" maxlength="300" value="${esc(n.allergies || '')}" placeholder="e.g. peanuts (anaphylaxis)">
+    <label>Special needs / medical</label><textarea name="needs" maxlength="500" rows="2" placeholder="e.g. EpiPen in backpack, asthma inhaler">${esc(n.needs || '')}</textarea>
+    <div class="grid2"><div><label>Pickup person</label><input name="pickup" maxlength="200" value="${esc(n.pickup || '')}"></div>
+    <div><label>Emergency contact</label><input name="emergency" maxlength="200" value="${esc(n.emergency || '')}"></div></div>
+    <label class="toggle" style="margin-top:8px"><input type="checkbox" name="share_in_email" ${n.share_in_email ? 'checked' : ''}> Include these notes in the host's "tomorrow" email (otherwise the email just says to check the app)</label>
+    <div class="flex"><button>Save notes</button><button type="button" class="link" data-a="editNotes" data-v="${k.id}">Close</button></div></form>`;
+}
+
+// ───────────── Group ─────────────
+function viewGroup() {
+  const g = S.groups.find(x => x.id === S.groupId);
+  const admin = isAdmin(), me = S.family.id;
+  const others = S.groups.filter(x => x.id !== S.groupId);
+  const oneoffs = S.g.holidays.filter(h => h.kind === 'oneoff');
+  const pendingProviders = (S.adminList || []).filter(p => p.status === 'pending').length;
+  return `<div class="card"><h2>${esc(g.name)}</h2>
+    <p class="muted">${esc(COUNTRIES[g.country] || g.country)}${g.region ? ' · ' + esc(g.region) : ''}${admin ? ` · <button class="link" data-a="editRegion" style="padding:0">change region</button>` : ''}</p>
+    ${S.editRegion ? `<form data-f="saveRegion" class="flex"><select name="region" class="grow">${regionOptions(g.country || 'NZ', g.region)}</select><button>Save</button></form><p class="muted">The region decides which anniversary-day public holidays show.</p>` : ''}
+    <label>Invite code</label><div class="flex"><span class="code">${esc(g.invite_code)}</span><button class="ghost" data-a="copyInvite">Copy invite</button></div>
+    <p class="muted">Share only with families you trust — anyone with the code can join and see the group's kids and plans.</p>
+    <h3>Families (${S.g.families.length})</h3>
+    ${S.g.families.map(f => { const n = S.g.kids.filter(k => k.family_id === f.id).length; return `<div class="kidrow"><div class="grow"><b>${esc(f.name)}</b>${f.id === me ? ' <span class="muted">(you)</span>' : ''}<div class="muted">${n} kid${n === 1 ? '' : 's'}${placeById(f.place_id) ? ' · ' + esc(placeById(f.place_id).name) : ''}</div></div>${f.role === 'admin' ? '<span class="pill ph">admin</span>' : ''}</div>`; }).join('')}
+  </div>
+  <div class="card"><h2>One-off days</h2>
+    <p class="muted">Teacher-only days, strikes, sick days, early finishes — anyone in the group can add one. It shows up in the dates menu at the top, and works just like a holiday.</p>
+    ${oneoffs.map(h => `<div class="kidrow"><div class="grow"><b>${esc(h.name)}</b><div class="muted">${h.start_date === h.end_date ? D.long(h.start_date) : D.short(h.start_date) + ' – ' + D.short(h.end_date)} · added by ${esc(S.g.famById[h.created_by]?.name || 'admin')}</div></div>
+      <button class="link" data-a="gotoPeriod" data-v="${h.id}">Open</button>${h.created_by === me || admin ? `<button class="danger" data-a="delHoliday" data-v="${h.id}">Remove</button>` : ''}</div>`).join('') || ''}
+    <form data-f="addOneoff">
+      <div class="grid2"><div><label>What is it?</label><select name="kind">${ONEOFF_TYPES.map(t => `<option>${t}</option>`).join('')}<option value="">Other…</option></select></div>
+      <div><label>Name (if other)</label><input name="other" maxlength="60" placeholder="e.g. Cultural festival"></div></div>
+      <div class="grid2"><div><label>Date</label><input type="date" name="start" required min="${D.today()}"></div><div><label>Until (optional)</label><input type="date" name="end" min="${D.today()}"></div></div>
+      <button style="margin-top:10px">Add one-off day</button>
+    </form>
+  </div>
+  <div class="card"><h2>Holiday dates</h2>
+    ${admin ? `<p class="muted">Official dates for ${esc(g.region || 'your region')} are pre-filled. Term 1 start and Term 4 finish vary by school — adjust the summer dates to match your kids' school.</p>
+      <form data-f="saveHolidays">
+        ${S.g.holidays.filter(h => h.kind !== 'oneoff').map(holRow).join('')}
+        <div id="newHol"></div>
+        <div class="flex" style="margin-top:8px;flex-wrap:wrap"><button type="button" class="ghost" data-a="addHol">+ Add period</button><button>Save dates</button><button type="button" class="link" data-a="resetHols">Reset to official dates</button></div>
+      </form>`
+    : S.g.holidays.filter(h => h.kind !== 'oneoff').map(h => `<div class="kidrow"><div class="grow"><b>${esc(h.name)}</b><div class="muted">${D.short(h.start_date)} – ${D.short(h.end_date)}</div></div></div>`).join('') + '<p class="muted">Only the group admin can change these.</p>'}
+  </div>
+  ${S.isAdmin ? `<div class="card adminc"><h2>🛠️ App admin</h2><p class="muted">Only you see this. Review holiday programme providers, approve listings and set free trials.</p>
+    <button data-a="openAdmin">Review providers${pendingProviders ? ` (${pendingProviders} waiting)` : ''}</button></div>` : ''}
+  ${API.demo ? `<div class="card prog"><h2>Demo: provider portal</h2><p class="muted">See what a holiday programme provider sees when they list with Co-hortdinate.</p><button data-a="demoAs" data-v="provider">Preview the provider portal</button></div>` : ''}
+  <div class="card"><h2>Other groups</h2>
+    ${others.map(o => `<div class="kidrow"><div class="grow">${esc(o.name)}</div><button class="link" data-a="switchGroup" data-v="${o.id}">Open</button></div>`).join('')}
+    <form data-f="joinGroup"><label>Join with invite code</label><div class="flex"><input class="grow" name="code" required><button>Join</button></div></form>
+    <h3>Start a new group</h3>${createGroupForm()}
+  </div>
+  <div class="card"><div class="flex" style="flex-wrap:wrap"><button class="danger" data-a="leaveGroup">Leave ${esc(g.name)}</button><span class="grow"></span>${API.demo ? '<button class="link" data-a="signOut">Reset demo data</button>' : '<button class="link" data-a="signOut">Sign out</button>'}</div></div>`;
+}
+const holRow = h => `<div class="holrow" data-hol>
+  <input name="hname" value="${esc(h.name)}" required placeholder="Name"><input type="date" name="hstart" value="${h.start_date}" required><input type="date" name="hend" value="${h.end_date}" required>
+  <button type="button" class="danger" data-a="rmHol">✕</button><input type="hidden" name="hnote" value="${esc(h.note || '')}"></div>`;
+
+// ───────────── App admin: provider review ─────────────
+function viewAdmin() {
+  const list = S.adminList;
+  if (!list) return '<div class="spin">Loading providers…</div>';
+  const badge = s => ({ pending: 'need', approved: 'host', rejected: 'ph', paused: 'ph' }[s]);
+  return `<div class="flex" style="margin-bottom:10px"><button class="link" data-a="tab" data-v="group">← Back</button><h2 class="grow" style="margin:0">Providers (${list.length})</h2></div>
+  <p class="muted" style="margin:0 2px 10px">Check each provider is a real business (website, NZBN on the Companies Office register, OSCAR approval if they claim it) before approving. Set a plan and end date by hand to give someone a free trial.</p>
+  ${list.map(p => `<div class="card listing">
+    <div class="flex"><h2 class="grow" style="margin:0">${esc(p.name)}</h2><span class="pill ${badge(p.status)}">${p.status}</span></div>
+    <p class="muted">${esc(p.effective_plan)}${p.paid_until ? ' until ' + D.full(p.paid_until) : ''} · ${(p.locations || []).map(esc).join(', ') || 'no venues yet'}</p>
+    ${p.about ? `<p>${esc(p.about)}</p>` : ''}
+    <p class="muted">${[p.website && `🌐 <a href="${esc(p.website)}" target="_blank" rel="noopener">${esc(p.website)}</a>`, p.booking_url && `🔗 ${esc(p.booking_url)}`, p.email && `✉️ ${esc(p.email)}`, p.phone && `📞 ${esc(p.phone)}`, p.nzbn && `NZBN ${esc(p.nzbn)}`, p.oscar && 'Claims OSCAR approval'].filter(Boolean).join('<br>')}</p>
+    ${p.review_note ? `<p class="muted">Note: ${esc(p.review_note)}</p>` : ''}
+    ${S.adminEdit === p.id ? `<form data-f="adminPlan" data-v="${p.id}" class="inlineform"><div class="grid2"><div><label>Plan</label><select name="plan">${['basic', 'standard', 'featured'].map(x => `<option ${x === p.plan ? 'selected' : ''}>${x}</option>`).join('')}</select></div>
+      <div><label>Paid / free until</label><input type="date" name="until" value="${p.paid_until || ''}"></div></div><div class="flex" style="margin-top:8px"><button>Save plan</button><button type="button" class="link" data-a="adminEdit" data-v="">Cancel</button></div></form>` : ''}
+    <div class="flex" style="flex-wrap:wrap;margin-top:8px">
+      ${p.status !== 'approved' ? `<button data-a="adminStatus" data-v="${p.id}" data-s="approved">Approve</button>` : `<button class="ghost" data-a="adminStatus" data-v="${p.id}" data-s="paused">Pause</button>`}
+      ${p.status === 'pending' ? `<button class="danger" data-a="adminStatus" data-v="${p.id}" data-s="rejected">Reject…</button>` : ''}
+      <button class="link" data-a="adminEdit" data-v="${p.id}">Set plan / free trial</button>
+    </div></div>`).join('') || '<div class="card"><p>No providers yet.</p></div>'}`;
+}
+
+// ───────────── Provider portal ─────────────
+function viewProvider() {
+  const { provider: p, locations, sessions, stats, demand, templates } = S.pv;
+  const eff = p.plan !== 'basic' && p.paid_until >= D.today() ? p.plan : 'basic';
+  const statusMsg = {
+    pending: ['need', '⏳ Waiting for review', 'We check every listing is a real business before families see it — usually within a day. Fill in your details, venues and dates below in the meantime.'],
+    approved: ['host', '✅ Live', `Families near your venues can see your listing. You're on the <b>${PLAN_INFO[eff].name}</b> plan${eff !== 'basic' ? ' until ' + D.full(p.paid_until) : ''}.`],
+    rejected: ['ph', 'Not approved yet', `${esc(p.review_note || '')} Update your details and save — it'll come back to us for review.`],
+    paused: ['ph', 'Paused', 'Your listing is hidden for now. Get in touch if you think this is a mistake.'],
+  }[p.status];
+  const kidsInRange = demand?.kids_in_range, byI = Object.entries(demand?.by_interest || {}).sort((a, b) => b[1] - a[1]);
+  const maxI = byI.length ? byI[0][1] : 1;
+  return `<div class="card ${p.status === 'approved' ? 'spare' : 'prog'}"><div class="flex"><h2 class="grow" style="margin:0">${esc(p.name)}</h2><span class="pill ${statusMsg[0]}">${statusMsg[1]}</span></div><p class="muted">${statusMsg[2]}</p></div>
+
+  <div class="card"><h2>Your results</h2>
+    ${p.status === 'approved' && stats ? `<div class="summary"><div><b>${stats.views_30}</b><span class="muted">families saw you (30 days)</span></div><div><b>${stats.clicks_30}</b><span class="muted">clicks to book (30 days)</span></div><div><b>${stats.kid_days_booked}</b><span class="muted">kid-days added by families</span></div></div>
+      <p class="muted">All time: ${stats.views_all} views · ${stats.clicks_all} clicks. Clicks go to your booking page with <code>?ref=cohortdinate</code> so you can track bookings in your own system.</p>`
+    : '<p class="muted">Stats appear once your listing is live.</p>'}
+    <h3>Families near your venues</h3>
+    ${eff !== 'basic' ? (kidsInRange ? `<p><b>${kidsInRange}</b> kids aged ${p.age_min}–${p.age_max} live within your travel areas. What they're into:</p>
+      ${byI.map(([t, n]) => `<div class="bar"><span>${INTEREST[t]?.e || ''} ${esc(INTEREST[t]?.l || t)}</span><i style="width:${Math.round(n / maxI * 100)}%"></i><b>${n}</b></div>`).join('')}
+      <p class="muted" style="font-size:12px">Totals only — never names or families. Groups smaller than 5 kids aren't shown.</p>` : '<p class="muted">Not enough families near you yet to show totals (we only show groups of 5 or more kids).</p>')
+    : '<p class="muted">🔒 Local demand insights come with Standard and Featured plans.</p>'}
+  </div>
+
+  <div class="card"><h2>Your listing</h2>
+    <form data-f="saveProviderListing">
+      <label>Programme name</label><input name="name" required maxlength="80" value="${esc(p.name)}">
+      <label>About (Standard & Featured show this)</label><textarea name="about" maxlength="800" rows="3">${esc(p.about || '')}</textarea>
+      <div class="grid2"><div><label>Website</label><input name="website" type="url" maxlength="300" value="${esc(p.website || '')}" placeholder="https://"></div>
+      <div><label>Booking page</label><input name="booking_url" type="url" maxlength="300" value="${esc(p.booking_url || '')}" placeholder="https://"></div></div>
+      <div class="grid2"><div><label>Contact email</label><input name="email" type="email" maxlength="120" value="${esc(p.email || '')}"></div>
+      <div><label>Phone</label><input name="phone" maxlength="30" value="${esc(p.phone || '')}"></div></div>
+      <div class="grid2"><div><label>Ages from</label><input name="age_min" type="number" min="0" max="18" value="${p.age_min}"></div><div><label>Ages to</label><input name="age_max" type="number" min="0" max="18" value="${p.age_max}"></div></div>
+      <div class="grid2"><div><label>Prices</label><input name="price_text" maxlength="80" value="${esc(p.price_text || '')}" placeholder="e.g. $65/day · $300/week"></div>
+      <div><label>NZBN</label><input name="nzbn" maxlength="20" value="${esc(p.nzbn || '')}"></div></div>
+      <label>Offer for Co-hortdinate families (optional)</label><input name="offer_text" maxlength="160" value="${esc(p.offer_text || '')}" placeholder="e.g. 10% off with code COHORT">
+      <label class="toggle" style="margin-top:8px"><input type="checkbox" name="oscar" ${p.oscar ? 'checked' : ''}> We're OSCAR approved (families can use the WINZ subsidy)</label>
+      <label>What do you offer? (matched to kids' interests)</label>${interestChips('tag', p.tags || [])}
+      <button style="margin-top:10px">Save listing</button>
+    </form>
+  </div>
+
+  <div class="card"><h2>Venues & travel areas</h2>
+    <p class="muted">Families only see you if they live within the distance you set from one of your venues.</p>
+    ${locations.map(l => `<div class="kidrow"><div class="grow"><b>${esc(l.venue || placeById(l.place_id)?.name || '')}</b><div class="muted">${esc(placeById(l.place_id)?.name || '')} · families within ${l.radius_km} km</div></div><button class="danger" data-a="delLocation" data-v="${l.id}">Remove</button></div>`).join('') || '<p class="muted">No venues yet — add at least one.</p>'}
+    <form data-f="addLocation"><label>Venue name</label><input name="venue" maxlength="120" placeholder="e.g. Mt Albert Primary hall">
+      ${placePicker('place', null, p.country)}
+      <label>Show to families within</label><select name="radius">${[5, 10, 15, 20, 30, 40, 60].map(r => `<option value="${r}" ${r === 15 ? 'selected' : ''}>${r} km</option>`).join('')}</select>
+      <button style="margin-top:10px">Add venue</button></form>
+  </div>
+
+  <div class="card"><h2>When you're running</h2>
+    ${sessions.map(s => `<div class="kidrow"><div class="grow"><b>${D.short(s.start_date)} – ${D.short(s.end_date)}</b>${s.note ? `<div class="muted">${esc(s.note)}</div>` : ''}</div><button class="danger" data-a="delSession" data-v="${s.id}">Remove</button></div>`).join('') || '<p class="muted">No dates yet.</p>'}
+    ${(templates || []).length ? `<p class="muted">Quick add a whole holiday: ${templates.slice(0, 4).map(t => `<button class="link" data-a="quickSession" data-a1="${t.start_date}" data-a2="${t.end_date}" data-n="${esc(t.name)}">${esc(t.name)}</button>`).join(' ')}</p>` : ''}
+    <form data-f="addSession"><div class="grid2"><div><label>From</label><input type="date" name="start" required></div><div><label>To</label><input type="date" name="end" required></div></div>
+      <label>Note (optional)</label><input name="note" maxlength="120" placeholder="e.g. Week 1: Art Attack"><button style="margin-top:10px">Add dates</button></form>
+  </div>
+
+  <div class="card"><h2>Your plan</h2>
+    <div class="plans">${Object.entries(PLAN_INFO).map(([k, v]) => `<div class="planbox ${k === eff ? 'cur' : ''}"><b>${v.name}</b><div class="price">${v.price}</div><ul>${v.bits.map(b => `<li>${b}</li>`).join('')}</ul>
+      ${k === 'basic' ? (eff === 'basic' ? '<span class="pill ph">Current</span>' : '') : `<div class="flex col">${k === eff ? '<span class="pill host">Current</span>' : ''}<button ${p.status !== 'approved' ? 'disabled' : ''} data-a="checkout" data-v="${k}" data-t="year">${k === eff ? 'Renew' : 'Get'} 12 months</button><button class="ghost" ${p.status !== 'approved' ? 'disabled' : ''} data-a="checkout" data-v="${k}" data-t="break">Just one holiday</button></div>`}</div>`).join('')}</div>
+    <p class="muted">${p.status !== 'approved' ? 'Upgrades are available once your listing is approved. ' : ''}One payment, no automatic renewals — we'll email you 2 weeks before it ends. Prices in NZD.</p>
+  </div>
+  <div class="card"><div class="flex">${API.demo ? '<button class="link" data-a="demoAs" data-v="family">← Back to the family demo</button>' : '<button class="link" data-a="signOut">Sign out</button>'}</div></div>`;
+}
+
 // ───────────── Actions ─────────────
 async function run(fn, reload = true) {
   S.error = '';
-  try { await fn(); if (reload) await reloadGroup(); }
-  catch (e) { S.error = e.message || String(e); }
+  try { await fn(); if (reload) { if (S.pv) S.pv = await API.loadProvider(S.providerId); else await reloadGroup(); } }
+  catch (e) { S.error = e.message || String(e); scrollTo(0, 0); }
   render();
 }
 function setPlanLocal(row) { S.g.planMap[row.family_id + '|' + row.date] = row; }
+const ids = el => el.dataset.v.split(',').filter(Boolean);
+
+function buildIcs() {
+  const me = S.family.id, ev = [];
+  const groups = {};
+  S.g.bookings.filter(b => b.status === 'confirmed' && (b.child_family === me || b.host_family === me)).forEach(b => {
+    const k = b.date + '|' + b.part + '|' + (b.host_family === me ? 'h' : b.host_family); (groups[k] ||= []).push(b);
+  });
+  Object.values(groups).forEach(bs => { const b = bs[0], kids = bs.map(x => S.g.kidById[x.kid_id]?.first_name).join(' & ');
+    ev.push({ date: b.date, uid: 'b-' + bs.map(x => x.id).join('-'), title: b.host_family === me ? `Hosting: ${bs.map(x => `${S.g.kidById[x.kid_id]?.first_name} (${S.g.famById[x.child_family]?.name})`).join(', ')}${partSuffix(b.part)}` : `${kids} → ${S.g.famById[b.host_family]?.name}${partSuffix(b.part)}` }); });
+  const pg = {};
+  S.g.progs.filter(x => S.g.kidById[x.kid_id]?.family_id === me).forEach(x => (pg[x.date + '|' + x.programme] ||= []).push(x));
+  Object.values(pg).forEach(xs => ev.push({ date: xs[0].date, uid: 'p-' + xs.map(x => x.id).join('-'), title: `${xs.map(x => S.g.kidById[x.kid_id]?.first_name).join(' & ')} @ ${xs[0].programme}` }));
+  const e = s => String(s).replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
+  const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z');
+  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Co-hortdinate//EN', 'CALSCALE:GREGORIAN', `X-WR-CALNAME:${e('Co-hortdinate — ' + S.family.name)}`];
+  ev.forEach(x => lines.push('BEGIN:VEVENT', `UID:${x.uid.slice(0, 200)}@cohortdinate`, `DTSTAMP:${stamp}`, `DTSTART;VALUE=DATE:${x.date.replaceAll('-', '')}`, `DTEND;VALUE=DATE:${D.add(x.date, 1).replaceAll('-', '')}`, `SUMMARY:${e(x.title)}`, 'TRANSP:TRANSPARENT', 'END:VEVENT'));
+  lines.push('END:VCALENDAR');
+  return { text: lines.join('\r\n'), count: ev.length };
+}
 
 const actions = {
+  tab(el) { S.tab = el.dataset.v; store.set('hh-tab', S.tab); S.openDay = null; S.form = null; render(); scrollTo(0, 0); },
+  openDay(el) { S.openDay = S.openDay === el.dataset.v ? null : el.dataset.v; S.form = null; S.notesFor = null; render(); },
+  gotoDay(el) { const d = el.dataset.v; const p = S.g.holidays.find(h => h.kind !== 'oneoff' && d >= h.start_date && d <= h.end_date) || S.g.holidays.find(h => d >= h.start_date && d <= h.end_date); if (p) S.periodId = p.id; S.tab = 'cal'; S.openDay = d; render(); },
+  gotoPeriod(el) { S.periodId = el.dataset.v; S.tab = 'cal'; S.openDay = null; render(); scrollTo(0, 0); },
+  toggleOffers() { S.showAllOffers = !S.showAllOffers; render(); },
+  openForm(el) { S.form = { type: el.dataset.t, date: el.dataset.d, fam: el.dataset.v, host: el.dataset.v }; render(); },
+  closeForm() { S.form = null; render(); },
+  respond(el) { run(() => API.respondBookings(ids(el), el.dataset.ok === '1')); },
+  cancelBooking(el) { if (confirm('Cancel this arrangement? The other family will get an email.')) run(() => API.cancelBookings(ids(el))); },
+  dismiss(el) { ids(el).forEach(i => S.dismissed.add(i)); store.set('hh-dismissed', [...S.dismissed].slice(-200)); render(); },
+  showNotes(el) { S.notesFor = S.notesFor === el.dataset.v ? null : el.dataset.v; render(); },
+  urgent(el) {
+    const d = el.dataset.d, s = daySummary(d), mine = s.need.filter(x => x.f.id === S.family.id);
+    const part = mine.every(x => x.part === mine[0]?.part) ? (mine[0]?.part || 'full') : 'full';
+    const msg = prompt(`Send an urgent call for help for ${D.short(d)}?\n\nEveryone in the group gets an email straight away. Add a short message (optional):`, '');
+    if (msg === null) return;
+    run(async () => { const n = await API.urgentCall(S.groupId, d, part, msg.trim()); toast(`🚨 Sent to ${n} famil${n === 1 ? 'y' : 'ies'}`); }, false);
+  },
+  setStatus(el) {
+    const d = el.dataset.d, prev = S.g.planMap[S.family.id + '|' + d];
+    const st = el.dataset.v;
+    const row = { family_id: S.family.id, date: d, status: st, capacity: st === 'host' ? (prev?.capacity || 1) : 0, note: st === 'host' ? (prev?.note || '') : '', part: ['need', 'host'].includes(st) ? (prev?.part || 'full') : 'full' };
+    setPlanLocal(row); render();
+    run(() => API.upsertPlans([row]), false);
+  },
+  setPart(el) { const row = { ...S.g.planMap[S.family.id + '|' + el.dataset.d], part: el.dataset.v }; setPlanLocal(row); render(); run(() => API.upsertPlans([row]), false); },
+  clearStatus(el) { const d = el.dataset.d; delete S.g.planMap[S.family.id + '|' + d]; render(); run(() => API.deletePlan(S.family.id, d), false); },
+  cap(el) {
+    const row = { ...S.g.planMap[S.family.id + '|' + el.dataset.d] };
+    row.capacity = Math.max(0, Math.min(20, (row.capacity || 0) + Number(el.dataset.v)));
+    setPlanLocal(row); render(); run(() => API.upsertPlans([row]), false);
+  },
+  bulkFill() {
+    const status = document.getElementById('bulkStatus').value;
+    const rows = periodDays(true).filter(d => (isOneoff() || !D.weekend(d)) && !ph(d) && !S.g.planMap[S.family.id + '|' + d])
+      .map(d => ({ family_id: S.family.id, date: d, status, capacity: status === 'host' ? 1 : 0, note: '', part: 'full' }));
+    if (!rows.length) { S.error = 'No empty days left to fill.'; render(); return; }
+    rows.forEach(setPlanLocal);
+    run(() => API.upsertPlans(rows));
+  },
+  delProgs(el) { run(() => API.deleteProgs(ids(el))); },
+  bookSame(el) { S.prefill = { programme: el.dataset.v, provider_id: el.dataset.pid, from: el.dataset.from, to: el.dataset.to }; S.tab = 'progs'; render(); },
+  clickProvider(el) { API.logProvider(el.dataset.v, 'click'); },
+  addFromListing(el) {
+    const pr = (S.near || []).find(x => x.id === el.dataset.v); const p = period();
+    const s = (pr.sessions || []).find(s => p && s.end >= p.start_date && s.start <= p.end_date);
+    S.prefill = { programme: pr.name, provider_id: pr.id, from: s ? (s.start < p.start_date ? p.start_date : s.start) : '', to: s ? (s.end > p.end_date ? p.end_date : s.end) : '' };
+    render();
+  },
+  editKid(el) { S.editKid = el.dataset.v; S.notesFor = null; render(); },
+  cancelKid() { S.editKid = null; render(); },
+  editNotes(el) { S.notesFor = S.notesFor === 'kid:' + el.dataset.v ? null : 'kid:' + el.dataset.v; S.editKid = null; render(); },
+  delKid(el) { const k = myKids().find(k => k.id === el.dataset.v); if (confirm(`Remove ${k.first_name}? Their programme bookings and arrangements will be removed too.`)) run(() => API.deleteKid(el.dataset.v)); },
+  async copyInvite() {
+    const g = S.groups.find(x => x.id === S.groupId);
+    const text = `Join our school holiday group "${g.name}" on Co-hortdinate: ${location.origin + location.pathname}\nInvite code: ${g.invite_code}`;
+    try { await navigator.clipboard.writeText(text); toast('Invite copied — paste it into your group chat.'); }
+    catch { prompt('Copy this invite:', text); }
+  },
+  async copyCal() {
+    const u = API.calendarUrl(S.family.calendar_token);
+    try { await navigator.clipboard.writeText(u); toast('Calendar link copied — keep it private.'); } catch { prompt('Copy this link:', u); }
+  },
+  downloadIcs() {
+    const { text, count } = buildIcs();
+    if (!count) { toast('No arrangements or programme bookings to add yet.'); return; }
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: 'text/calendar' })); a.download = 'co-hortdinate.ics';
+    document.body.appendChild(a); a.click(); a.remove(); toast(`📅 ${count} event${count > 1 ? 's' : ''} downloaded`);
+  },
+  switchGroup(el) { S.groupId = el.dataset.v; store.set('hh-group', S.groupId); S.periodId = null; S.tab = 'cal'; run(() => Promise.resolve()); },
+  editRegion() { S.editRegion = !S.editRegion; render(); },
+  addHol() { document.getElementById('newHol').insertAdjacentHTML('beforeend', holRow({ name: '', start_date: '', end_date: '' })); },
+  rmHol(el) { el.closest('[data-hol]').remove(); },
+  resetHols() { if (confirm('Replace this group\'s school holiday dates with the official dates for your region? One-off days are kept.')) run(() => API.resetHolidays(S.groupId)); },
+  delHoliday(el) { if (confirm('Remove this one-off day?')) run(() => API.deleteHoliday(el.dataset.v)); },
+  leaveGroup() {
+    if (!confirm('Leave this group? Your plan stays saved, but this group will no longer see it.')) return;
+    run(async () => { await API.leaveGroup(S.groupId, S.family.id); const me = await API.getMe(); S.groups = me.groups; S.groupId = S.groups[0]?.id || null; });
+  },
+  signOut() { run(async () => { await API.signOut(); Object.assign(S, { user: null, family: null, groups: [], g: null, sentTo: null, pv: null, providerId: null }); }, false); },
+  demoAs(el) { API.setDemoAs(el.dataset.v); S.pv = null; S.tab = el.dataset.v === 'family' ? 'group' : S.tab; boot(); scrollTo(0, 0); },
+  // app admin
+  openAdmin() { S.tab = 'admin'; S.adminList = null; render(); run(async () => { S.adminList = await API.adminProviders(); }, false); },
+  adminEdit(el) { S.adminEdit = el.dataset.v || null; render(); },
+  adminStatus(el) {
+    const p = S.adminList.find(x => x.id === el.dataset.v), st = el.dataset.s;
+    let note = p.review_note;
+    if (st === 'rejected') { note = prompt('What should they fix? (This goes in the email to them.)', ''); if (note === null) return; }
+    run(async () => { await API.adminUpdateProvider(p.id, st, p.plan, p.paid_until, note); S.adminList = await API.adminProviders(); }, false);
+  },
+  // provider portal
+  delLocation(el) { run(() => API.deleteLocation(el.dataset.v)); },
+  delSession(el) { run(() => API.deleteSession(el.dataset.v)); },
+  quickSession(el) { run(() => API.addSession({ provider_id: S.providerId, start_date: el.dataset.a1, end_date: el.dataset.a2, note: el.dataset.n })); },
+  checkout(el) { run(() => API.checkout(el.dataset.v, el.dataset.t)); },
+  // sitters
   addSitter() { S.addingSitter = true; S.editSitter = null; render(); },
   editSitter(el) { S.editSitter = el.dataset.v; S.addingSitter = false; render(); scrollTo(0, 0); },
   cancelSitter() { S.addingSitter = false; S.editSitter = null; render(); },
@@ -949,56 +1721,95 @@ const actions = {
     on ? S.g.availSet.add(key) : S.g.availSet.delete(key); render();
     run(() => API.setAvail(el.dataset.v, el.dataset.d, on), false);
   },
-  tab(el) { S.tab = el.dataset.v; store.set('hh-tab', S.tab); S.openDay = null; render(); scrollTo(0, 0); },
-  toggleOffers() { S.showAllOffers = !S.showAllOffers; render(); },
-  openDay(el) { S.openDay = S.openDay === el.dataset.v ? null : el.dataset.v; render(); },
-  setStatus(el) {
-    const d = el.dataset.d, prev = S.g.planMap[S.family.id + '|' + d];
-    const row = { family_id: S.family.id, date: d, status: el.dataset.v, capacity: el.dataset.v === 'host' ? (prev?.capacity || 1) : 0, note: el.dataset.v === 'host' ? (prev?.note || '') : '' };
-    setPlanLocal(row); render();
-    run(() => API.upsertPlans([row]), false);
-  },
-  clearStatus(el) { const d = el.dataset.d; delete S.g.planMap[S.family.id + '|' + d]; render(); run(() => API.deletePlan(S.family.id, d), false); },
-  cap(el) {
-    const row = { ...S.g.planMap[S.family.id + '|' + el.dataset.d] };
-    row.capacity = Math.max(0, Math.min(20, (row.capacity || 0) + Number(el.dataset.v)));
-    setPlanLocal(row); render(); run(() => API.upsertPlans([row]), false);
-  },
-  bulkFill() {
-    const status = document.getElementById('bulkStatus').value;
-    const rows = periodDays(true).filter(d => !D.weekend(d) && !PUBLIC_HOLIDAYS[d] && !S.g.planMap[S.family.id + '|' + d])
-      .map(d => ({ family_id: S.family.id, date: d, status, capacity: status === 'host' ? 1 : 0, note: '' }));
-    if (!rows.length) { S.error = 'No empty weekdays left to fill.'; render(); return; }
-    rows.forEach(setPlanLocal);
-    run(() => API.upsertPlans(rows));
-  },
-  delProgs(el) { run(() => API.deleteProgs(el.dataset.v.split(','))); },
-  bookSame(el) { S.prefill = { programme: el.dataset.v, from: el.dataset.from, to: el.dataset.to }; S.tab = 'plan'; render(); },
-  editKid(el) { S.editKid = el.dataset.v; render(); },
-  cancelKid() { S.editKid = null; render(); },
-  delKid(el) { const k = myKids().find(k => k.id === el.dataset.v); if (confirm(`Remove ${k.first_name}? Their programme bookings will be removed too.`)) run(() => API.deleteKid(el.dataset.v)); },
-  async copyInvite() {
-    const g = S.groups.find(x => x.id === S.groupId);
-    const text = `Join our school holiday group "${g.name}" on Co-hortdinate: ${location.origin + location.pathname}\nInvite code: ${g.invite_code}`;
-    try { await navigator.clipboard.writeText(text); S.error = ''; alertInline('Invite copied — paste it into your group chat.'); }
-    catch { prompt('Copy this invite:', text); }
-  },
-  switchGroup(el) { S.groupId = el.dataset.v; store.set('hh-group', S.groupId); S.periodId = null; S.tab = 'cal'; run(() => Promise.resolve()); },
-  addHol() { document.getElementById('newHol').insertAdjacentHTML('beforeend', holRow({ name: '', start_date: '', end_date: '' })); },
-  rmHol(el) { el.closest('[data-hol]').remove(); },
-  resetHols() { if (confirm('Replace this group\'s holiday dates with the official NZ defaults?')) run(() => API.saveHolidays(S.groupId, DEFAULT_HOLIDAYS)); },
-  leaveGroup() {
-    if (!confirm('Leave this group? Your plan stays saved, but this group will no longer see it.')) return;
-    run(async () => { await API.leaveGroup(S.groupId, S.family.id); S.groupId = null; const me = await API.getMe(); S.groups = me.groups; S.groupId = S.groups[0]?.id || null; });
-  },
-  signOut() { run(async () => { await API.signOut(); Object.assign(S, { user: null, family: null, groups: [], g: null, sentTo: null }); }, false); },
 };
-function alertInline(msg) {
-  const el = document.createElement('div'); el.className = 'banner'; el.style.cssText = 'position:fixed;left:12px;right:12px;bottom:84px;z-index:9;text-align:center';
-  el.textContent = msg; document.body.appendChild(el); setTimeout(() => el.remove(), 2500);
-}
 
+const checked = (f, name) => [...f.querySelectorAll(`input[name=${name}]:checked`)].map(i => i.value);
 const forms = {
+  async signin(f) {
+    const email = f.email.value.trim(); S.busy = true; render();
+    await run(async () => { await API.signIn(email); S.sentTo = email; }, false); S.busy = false; render();
+  },
+  async verify(f) { await run(async () => { await API.verify(S.sentTo, f.code.value.trim()); S.user = true; }, false); boot(); },
+  async createFamily(f) { await run(() => API.createFamily(f.name.value.trim()), false); S.tab = 'family'; boot(); },
+  async joinFamily(f) { await run(() => API.joinFamily(f.code.value.trim()), false); boot(); },
+  async registerProvider(f) { await run(() => API.registerProvider(f.name.value.trim()), false); boot(); },
+  async createGroup(f) {
+    if (!f.region.value) { S.error = 'Pick your region so we can load the right holiday dates.'; render(); return; }
+    await run(async () => { const g = await API.createGroup(f.name.value.trim(), f.country.value, f.region.value); S.groupId = g.id; store.set('hh-group', g.id); S.tab = 'family'; }, false); boot();
+  },
+  async joinGroup(f) { await run(async () => { const g = await API.joinGroup(f.code.value.trim()); S.groupId = g.id; store.set('hh-group', g.id); S.tab = 'family'; }, false); boot(); },
+  renameFamily(f) { const name = f.name.value.trim(); run(async () => { await API.updateFamily(S.family.id, { name }); S.family.name = name; }); },
+  setPlace(f) {
+    const id = parseInt(f.place.value, 10);
+    if (!id) { S.error = 'Pick your suburb or town.'; render(); return; }
+    run(async () => { await API.updateFamily(S.family.id, { place_id: id }); S.family.place_id = id; S.regionPick = null; toast('📍 Saved'); });
+  },
+  saveKid(f) {
+    const k = { id: f.id.value || undefined, family_id: S.family.id, first_name: f.first_name.value.trim(), birth_month: f.birth_month.value ? f.birth_month.value + '-01' : null, gender: f.gender.value || null, interests: checked(f, 'interest') };
+    S.editKid = null; run(() => API.saveKid(k));
+  },
+  saveNotes(f) {
+    const n = { kid_id: f.dataset.v, allergies: f.allergies.value.trim() || null, needs: f.needs.value.trim() || null, pickup: f.pickup.value.trim() || null, emergency: f.emergency.value.trim() || null, share_in_email: f.share_in_email.checked };
+    S.notesFor = null; run(async () => { await API.saveNote(n); toast('📋 Care notes saved'); });
+  },
+  addProg(f) {
+    const kidIds = checked(f, 'kid');
+    const from = f.from.value, to = f.to.value, programme = f.programme.value.trim();
+    if (!kidIds.length) { S.error = 'Pick at least one kid.'; render(); return; }
+    if (to < from) { S.error = '"To" date is before "From".'; render(); return; }
+    const match = (S.near || []).find(x => x.name.trim().toLowerCase() === programme.toLowerCase());
+    const provider_id = f.provider_id.value || match?.id || null;
+    const dates = D.range(from, to).filter(d => !f.weekdays.checked || (!D.weekend(d) && !ph(d)));
+    const rows = kidIds.flatMap(kid_id => dates.map(date => ({ kid_id, date, programme, provider_id })));
+    run(() => API.upsertProgs(rows));
+  },
+  saveHolidays(f) {
+    const list = [...f.querySelectorAll('[data-hol]')].map(r => ({ name: r.querySelector('[name=hname]').value.trim(), start_date: r.querySelector('[name=hstart]').value, end_date: r.querySelector('[name=hend]').value, note: r.querySelector('[name=hnote]').value }));
+    if (list.some(h => h.end_date < h.start_date)) { S.error = 'A holiday period ends before it starts.'; render(); return; }
+    run(() => API.saveHolidays(S.groupId, list));
+  },
+  addOneoff(f) {
+    const name = (f.kind.value || f.other.value.trim());
+    if (!name) { S.error = 'Give the one-off day a name.'; render(); return; }
+    const start = f.start.value, end = f.end.value || start;
+    if (end < start) { S.error = '"Until" is before the start date.'; render(); return; }
+    run(async () => { await API.addOneoff(S.groupId, name, start, end); toast('Added — pick it from the dates menu at the top'); });
+  },
+  saveRegion(f) { const region = f.region.value; S.editRegion = false; run(async () => { await API.updateGroup(S.groupId, { region }); S.groups.find(g => g.id === S.groupId).region = region; }); },
+  offer(f) {
+    const d = f.dataset.d, kidIds = checked(f, 'kid'), part = f.part.value, note = f.note.value.trim();
+    run(async () => {
+      const mine = S.g.planMap[S.family.id + '|' + d];
+      if (mine?.status !== 'host' || (mine.capacity || 0) < kidIds.length) {
+        await API.upsertPlans([{ family_id: S.family.id, date: d, status: 'host', capacity: Math.max(mine?.status === 'host' ? mine.capacity : 0, kidIds.length), note: mine?.note || '', part: mine?.status === 'host' ? mine.part : part }]);
+      }
+      await API.createBookings(S.groupId, d, part, kidIds, S.family.id, note);
+      S.form = null;
+    });
+  },
+  ask(f) {
+    const d = f.dataset.d, kidIds = checked(f, 'kid'), part = f.part.value, note = f.note.value.trim();
+    run(async () => { await API.createBookings(S.groupId, d, part, kidIds, f.dataset.host, note); S.form = null; toast('Asked — you\'ll get an email when they answer'); });
+  },
+  adminPlan(f) {
+    const p = S.adminList.find(x => x.id === f.dataset.v);
+    run(async () => { await API.adminUpdateProvider(p.id, p.status, f.plan.value, f.until.value || null, p.review_note); S.adminEdit = null; S.adminList = await API.adminProviders(); }, false);
+  },
+  saveProviderListing(f) {
+    const patch = { name: f.name.value.trim(), about: f.about.value.trim() || null, website: f.website.value.trim() || null, booking_url: f.booking_url.value.trim() || null,
+      email: f.email.value.trim() || null, phone: f.phone.value.trim() || null, age_min: parseInt(f.age_min.value, 10) || 0, age_max: parseInt(f.age_max.value, 10) || 18,
+      price_text: f.price_text.value.trim() || null, nzbn: f.nzbn.value.trim() || null, offer_text: f.offer_text.value.trim() || null, oscar: f.oscar.checked, tags: checked(f, 'tag') };
+    run(async () => { await API.saveProvider(S.providerId, patch); toast('Listing saved'); });
+  },
+  addLocation(f) {
+    const place_id = parseInt(f.place.value, 10);
+    if (!place_id) { S.error = 'Pick the suburb or town your venue is in.'; render(); return; }
+    run(() => API.addLocation({ provider_id: S.providerId, place_id, venue: f.venue.value.trim() || null, radius_km: parseInt(f.radius.value, 10) }));
+  },
+  addSession(f) {
+    if (f.end.value < f.start.value) { S.error = '"To" is before "From".'; render(); return; }
+    run(() => API.addSession({ provider_id: S.providerId, start_date: f.start.value, end_date: f.end.value, note: f.note.value.trim() || null }));
+  },
   saveSitter(f) {
     const x = { id: f.id.value || undefined, group_id: S.groupId, added_by: S.family.id, name: f.name.value.trim(), phone: f.phone.value.trim(), email: f.email.value.trim(),
       rate: f.rate.value.trim(), max_kids: f.max_kids.value ? Math.max(1, Math.min(20, parseInt(f.max_kids.value, 10))) : null, area: f.area.value.trim(), notes: f.notes.value.trim(),
@@ -1007,39 +1818,12 @@ const forms = {
     S.addingSitter = false; S.editSitter = null;
     run(() => API.saveSitter(x));
   },
-  async signin(f) {
-    const email = f.email.value.trim(); S.busy = true; render();
-    await run(async () => { await API.signIn(email); S.sentTo = email; }, false); S.busy = false; render();
-  },
-  async verify(f) { await run(async () => { await API.verify(S.sentTo, f.code.value.trim()); S.user = true; }, false); boot(); },
-  async createFamily(f) { await run(() => API.createFamily(f.name.value.trim()), false); boot(); },
-  async joinFamily(f) { await run(() => API.joinFamily(f.code.value.trim()), false); boot(); },
-  async createGroup(f) { await run(async () => { const g = await API.createGroup(f.name.value.trim()); S.groupId = g.id; store.set('hh-group', g.id); S.tab = 'family'; }, false); boot(); },
-  async joinGroup(f) { await run(async () => { const g = await API.joinGroup(f.code.value.trim()); S.groupId = g.id; store.set('hh-group', g.id); S.tab = myKids().length ? 'plan' : 'family'; }, false); boot(); },
-  renameFamily(f) { const name = f.name.value.trim(); run(async () => { await API.updateFamily(S.family.id, name); S.family.name = name; }); },
-  saveKid(f) {
-    const k = { id: f.id.value || undefined, family_id: S.family.id, first_name: f.first_name.value.trim(), birth_month: f.birth_month.value ? f.birth_month.value + '-01' : null, gender: f.gender.value || null };
-    S.editKid = null; run(() => API.saveKid(k));
-  },
-  addProg(f) {
-    const kidIds = [...f.querySelectorAll('input[name=kid]:checked')].map(i => i.value);
-    const from = f.from.value, to = f.to.value, programme = f.programme.value.trim();
-    if (!kidIds.length) { S.error = 'Pick at least one kid.'; render(); return; }
-    if (to < from) { S.error = '"To" date is before "From".'; render(); return; }
-    const dates = D.range(from, to).filter(d => !f.weekdays.checked || (!D.weekend(d) && !PUBLIC_HOLIDAYS[d]));
-    const rows = kidIds.flatMap(kid_id => dates.map(date => ({ kid_id, date, programme })));
-    run(() => API.upsertProgs(rows));
-  },
-  saveHolidays(f) {
-    const list = [...f.querySelectorAll('[data-hol]')].map(r => ({ name: r.querySelector('[name=hname]').value.trim(), start_date: r.querySelector('[name=hstart]').value, end_date: r.querySelector('[name=hend]').value, note: r.querySelector('[name=hnote]').value }));
-    if (list.some(h => h.end_date < h.start_date)) { S.error = 'A holiday period ends before it starts.'; render(); return; }
-    run(() => API.saveHolidays(S.groupId, list));
-  },
 };
 
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-a]'); if (!el || !actions[el.dataset.a]) return;
-  e.preventDefault(); actions[el.dataset.a](el, e);
+  if (el.tagName !== 'A') e.preventDefault();
+  actions[el.dataset.a](el, e);
 });
 document.addEventListener('submit', e => {
   const f = e.target; if (!forms[f.dataset.f]) return;
@@ -1047,14 +1831,27 @@ document.addEventListener('submit', e => {
 });
 document.addEventListener('change', e => {
   const el = e.target, c = el.dataset.c; if (!c) return;
-  if (c === 'period') { S.periodId = el.value; S.openDay = null; render(); scrollTo(0, 0); }
+  if (c === 'period') { S.periodId = el.value; S.openDay = null; S.form = null; render(); scrollTo(0, 0); }
   if (c === 'group') { S.groupId = el.value; store.set('hh-group', S.groupId); S.periodId = null; run(() => Promise.resolve()); }
   if (c === 'weekends') { S.showWeekends = el.checked; store.set('hh-weekends', S.showWeekends); render(); }
   if (c === 'note') { const row = { ...S.g.planMap[S.family.id + '|' + el.dataset.d], note: el.value.slice(0, 140) }; setPlanLocal(row); run(() => API.upsertPlans([row]), false); }
+  if (c === 'regionPick') {
+    // fill the suburb list in place, so other fields in the form keep what's typed
+    const sel = el.form?.querySelector(`select[name="${el.dataset.v}"]`); if (!sel) return;
+    (S.regionPick ||= {})[el.dataset.v] = el.value;
+    const country = S.pv?.provider.country || 'NZ';
+    sel.innerHTML = '<option value="">Choose…</option>' + S.places.filter(p => p.country === country && p.region === el.value).map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('');
+    sel.disabled = !el.value;
+  }
+  if (c === 'autoAccept' || c === 'emailReminders') {
+    const key = c === 'autoAccept' ? 'auto_accept' : 'email_reminders';
+    S.family[key] = el.checked; run(() => API.updateFamily(S.family.id, { [key]: el.checked }), false);
+  }
 });
 
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 boot();
+
 </script>
 </body>
 </html>
