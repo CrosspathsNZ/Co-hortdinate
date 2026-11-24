@@ -206,6 +206,9 @@ nav button{font-size:11px}
 
 
 
+
+
+
 /* ───────── v3 additions ───────── */
 /* public holidays: soft grey (programmes keep sunshine yellow) */
 .cell.ph{background:#f1eef6;border-color:#ddd6e8;box-shadow:0 3px 0 #e8e2f0}
@@ -255,6 +258,15 @@ button.urgent{background:var(--need);box-shadow:0 3px 0 #d93a40}
 code{background:#f4efe6;border-radius:6px;padding:1px 5px;font-size:12px}
 .summary span{display:block;line-height:1.2}
 nav[hidden]{display:none!important}
+.lhead{cursor:pointer}
+.lhead .chev{color:var(--brand);font-size:18px;font-weight:800;margin-left:4px}
+.listing .gapfit{color:var(--home);font-weight:800;margin-top:3px}
+.listing .friends,.listing .match{margin-top:3px}
+.listing .lbody{margin-top:10px;border-top:2px dashed var(--line);padding-top:8px}
+.card.listing{padding:12px 14px}
+.nearnote{margin:-2px 4px 10px}
+button.link.inl{padding:0;font-size:inherit}
+button.showall{width:100%;margin-bottom:12px}
 </style>
 </head>
 <body>
@@ -905,8 +917,16 @@ function recentDeclines() {
   list.forEach(b => { const k = b.date + '|' + b.host_family + '|' + b.child_family; (groups[k] ||= []).push(b); });
   return Object.values(groups);
 }
-// Programmes near me, ranked: friends going, interest + age match, plan, distance
+// Days in the current period where at least one of my kids still needs care
+// (marked "need care", not at a programme, and not sorted with a friend)
+function myGapDays() {
+  const fid = S.family.id;
+  return periodDays(true).filter(d => d >= D.today() && S.g.planMap[fid + '|' + d]?.status === 'need' && daySummary(d).need.some(x => x.f.id === fid));
+}
+const hasPlanInPeriod = () => periodDays(true).some(d => S.g.planMap[S.family.id + '|' + d]);
+// Programmes near me, ranked: friends going, runs on my gap days, interest + age match, plan, distance
 function rankedNear() {
+  const gaps = myGapDays();
   const kids = myKids(), p = period();
   const friendsGoing = pr => {
     const ids = new Set(S.g.progs.filter(x => (x.provider_id === pr.id || x.programme.trim().toLowerCase() === pr.name.trim().toLowerCase()) &&
@@ -923,8 +943,9 @@ function rankedNear() {
       if (common.length) { match += common.length; reasons.push(`${esc(k.first_name)}: ${common.map(t => INTEREST[t]?.l).filter(Boolean).join(', ')}`); }
     }
     const friends = friendsGoing(pr);
-    const score = friends * 3 + match + (pr.plan === 'featured' ? 2.5 : pr.plan === 'standard' ? 1 : 0) - pr.distance_km / 15;
-    return { ...pr, reasons, friends, score };
+    const gapDays = gaps.filter(d => runsOn(pr, d));
+    const score = friends * 3 + Math.min(gapDays.length, 5) * 1.5 + match + (pr.plan === 'featured' ? 2.5 : pr.plan === 'standard' ? 1 : 0) - pr.distance_km / 15;
+    return { ...pr, reasons, friends, gapDays, score };
   }).sort((a, b) => b.score - a.score);
 }
 const runsOn = (pr, d) => (pr.sessions || []).some(s => d >= s.start && d <= s.end);
@@ -1211,27 +1232,36 @@ function viewPlan() {
 function interestChips(name, selected) {
   return `<div class="tags">${INTERESTS.map(([k, e, l]) => `<label class="tag"><input type="checkbox" name="${name}" value="${k}" ${selected.includes(k) ? 'checked' : ''}><span>${e} ${l}</span></label>`).join('')}</div>`;
 }
-function listingCard(pr) {
+function listingCard(pr, gapCount) {
   const p = period();
   const sess = (pr.sessions || []).filter(s => !p || (s.end >= p.start_date && s.start <= p.end_date));
   if (!S.viewed.has(pr.id)) { S.viewed.add(pr.id); API.logProvider(pr.id, 'view'); }
   const paid = pr.plan !== 'basic';
-  return `<div class="card listing ${pr.plan}">
-    <div class="flex"><div class="grow"><h2 style="margin:0">${esc(pr.name)}</h2>
-      <div class="muted">${pr.distance_km} km away${pr.venues?.[0] ? ` · ${esc(pr.venues[0].venue || pr.venues[0].place)}` : ''} · ages ${pr.age_min}–${pr.age_max}</div></div>
-      ${pr.plan === 'featured' ? '<span class="pill feat">★ Featured</span>' : ''}</div>
-    ${pr.friends ? `<p class="friends">👫 ${pr.friends} kid${pr.friends > 1 ? 's' : ''} from your group ${pr.friends > 1 ? 'are' : 'is'} going</p>` : ''}
-    ${pr.reasons.length ? `<p class="match">✨ Great for ${pr.reasons.join(' · ')}</p>` : ''}
-    ${paid && pr.about ? `<p>${esc(pr.about)}</p>` : ''}
-    <div class="chips">${(pr.tags || []).map(t => `<span class="chip">${INTEREST[t]?.e || ''} ${esc(INTEREST[t]?.l || t)}</span>`).join('')}${pr.oscar ? '<span class="chip">✅ OSCAR approved (WINZ subsidy)</span>' : ''}</div>
-    ${paid && pr.price_text ? `<p><b>${esc(pr.price_text)}</b></p>` : ''}
-    ${paid && sess.length ? `<p class="muted">Running: ${sess.map(s => `${s.start === s.end ? D.short(s.start) : D.short(s.start) + ' – ' + D.short(s.end)}${s.note ? ' (' + esc(s.note) + ')' : ''}`).join(', ')}</p>` : ''}
-    ${paid && pr.offer_text ? `<p class="offer">🎁 Co-hortdinate offer: <b>${esc(pr.offer_text)}</b></p>` : ''}
-    <div class="flex" style="flex-wrap:wrap;margin-top:8px">
-      ${pr.booking_url ? `<a class="btn" href="${esc(withRef(pr.booking_url))}" target="_blank" rel="noopener" data-a="clickProvider" data-v="${pr.id}">Book on their website ↗</a>` : ''}
-      ${paid && pr.phone ? `<a class="btn ghost" href="tel:${esc(pr.phone.replace(/[^\d+]/g, ''))}">📞 ${esc(pr.phone)}</a>` : ''}
-      <button class="ghost" data-a="addFromListing" data-v="${pr.id}">+ Add to our plan</button>
+  const open = S.openListing === pr.id;
+  const venue = pr.venues?.[0] ? (pr.venues[0].venue || pr.venues[0].place) : '';
+  return `<div class="card listing ${pr.plan} ${open ? 'open' : ''}">
+    <div class="lhead" data-a="toggleListing" data-v="${pr.id}" role="button" tabindex="0" aria-expanded="${open}">
+      <div class="grow">
+        <div class="flex"><h2 class="grow" style="margin:0">${esc(pr.name)}</h2>${pr.plan === 'featured' ? '<span class="pill feat">★ Featured</span>' : ''}<span class="chev">${open ? '▴' : '▾'}</span></div>
+        <div class="muted">${pr.distance_km} km${venue ? ` · ${esc(venue)}` : ''} · ages ${pr.age_min}–${pr.age_max}</div>
+        ${gapCount && pr.gapDays.length ? `<div class="gapfit">📅 Runs on ${pr.gapDays.length === gapCount ? (gapCount === 1 ? 'your open day' : gapCount === 2 ? 'both your open days' : `all ${gapCount} of your open days`) : `${pr.gapDays.length} of your ${gapCount} open days`}</div>` : ''}
+        ${pr.friends ? `<div class="friends">👫 ${pr.friends} kid${pr.friends > 1 ? 's' : ''} from your group ${pr.friends > 1 ? 'are' : 'is'} going</div>` : ''}
+        ${pr.reasons.length ? `<div class="match">✨ Great for ${pr.reasons.join(' · ')}</div>` : ''}
+      </div>
     </div>
+    ${open ? `<div class="lbody">
+      ${paid && pr.about ? `<p>${esc(pr.about)}</p>` : ''}
+      <div class="chips">${(pr.tags || []).map(t => `<span class="chip">${INTEREST[t]?.e || ''} ${esc(INTEREST[t]?.l || t)}</span>`).join('')}${pr.oscar ? '<span class="chip">✅ OSCAR approved (WINZ subsidy)</span>' : ''}</div>
+      ${paid && pr.price_text ? `<p><b>${esc(pr.price_text)}</b></p>` : ''}
+      ${pr.gapDays.length ? `<p class="muted">Your open days it runs: ${runs(pr.gapDays).map(runLabel).join(', ')}</p>` : ''}
+      ${paid && sess.length ? `<p class="muted">Running: ${sess.map(s => `${s.start === s.end ? D.short(s.start) : D.short(s.start) + ' – ' + D.short(s.end)}${s.note ? ' (' + esc(s.note) + ')' : ''}`).join(', ')}</p>` : ''}
+      ${paid && pr.offer_text ? `<p class="offer">🎁 Co-hortdinate offer: <b>${esc(pr.offer_text)}</b></p>` : ''}
+      <div class="flex" style="flex-wrap:wrap;margin-top:8px">
+        ${pr.booking_url ? `<a class="btn" href="${esc(withRef(pr.booking_url))}" target="_blank" rel="noopener" data-a="clickProvider" data-v="${pr.id}">Book on their website ↗</a>` : ''}
+        ${paid && pr.phone ? `<a class="btn ghost" href="tel:${esc(pr.phone.replace(/[^\d+]/g, ''))}">📞 ${esc(pr.phone)}</a>` : ''}
+        <button class="ghost" data-a="addFromListing" data-v="${pr.id}">+ Add to our plan</button>
+      </div>
+    </div>` : ''}
   </div>`;
 }
 function withRef(u) { try { const x = new URL(u); x.searchParams.set('ref', 'cohortdinate'); return x.toString(); } catch { return u; } }
@@ -1246,8 +1276,20 @@ function viewProgrammes() {
   } else {
     const list = rankedNear();
     const here = placeById(fam.place_id);
-    near = `<div class="sectionhead"><h2>Near ${esc(here?.name || 'you')}</h2><button class="link" data-a="tab" data-v="family">Change</button></div>` +
-      (list.length ? list.map(listingCard).join('') : `<div class="card"><p>No holiday programmes are listed near you yet.</p><p class="muted">Know a great one? Tell them about Co-hortdinate — listing is free.</p></div>`);
+    const gaps = myGapDays(), planned = hasPlanInPeriod();
+    const fits = list.filter(pr => pr.gapDays.length);
+    const showAll = S.showAllNear || !planned;
+    const shown = showAll ? list : fits;
+    let note;
+    if (!planned) note = `Fill in <button class="link inl" data-a="tab" data-v="plan">My plan</button> and we'll only show programmes running on the days your kids still need care.`;
+    else if (!gaps.length) note = `🎉 Every day of ${esc(p?.name || 'these holidays')} is sorted for your kids.`;
+    else note = `Showing programmes running on your <b>${gaps.length} day${gaps.length > 1 ? 's' : ''}</b> that still need care (${runs(gaps).map(runLabel).join(', ')}).`;
+    near = `<div class="sectionhead"><h2>Near ${esc(here?.name || 'you')}</h2><button class="link" data-a="tab" data-v="family">Change</button></div>
+      <p class="muted nearnote">${note}</p>` +
+      (shown.length ? shown.map(pr => listingCard(pr, gaps.length)).join('') :
+        list.length ? (planned && gaps.length ? `<div class="card"><p>None of the ${list.length} programme${list.length > 1 ? 's' : ''} near you run on those days.</p></div>` : '')
+        : `<div class="card"><p>No holiday programmes are listed near you yet.</p><p class="muted">Know a great one? Tell them about Co-hortdinate — listing is free.</p></div>`) +
+      (planned && list.length > fits.length ? `<button class="ghost showall" data-a="toggleNear">${S.showAllNear ? `Only show ones for my open days` : `Show all ${list.length} nearby`}</button>` : '');
   }
   // Friends going (this holiday)
   let friends = '';
@@ -1604,6 +1646,8 @@ const actions = {
   openDay(el) { S.openDay = S.openDay === el.dataset.v ? null : el.dataset.v; S.form = null; S.notesFor = null; render(); },
   gotoDay(el) { const d = el.dataset.v; const p = S.g.holidays.find(h => h.kind !== 'oneoff' && d >= h.start_date && d <= h.end_date) || S.g.holidays.find(h => d >= h.start_date && d <= h.end_date); if (p) S.periodId = p.id; S.tab = 'cal'; S.openDay = d; render(); },
   gotoPeriod(el) { S.periodId = el.dataset.v; S.tab = 'cal'; S.openDay = null; render(); scrollTo(0, 0); },
+  toggleListing(el) { S.openListing = S.openListing === el.dataset.v ? null : el.dataset.v; render(); },
+  toggleNear() { S.showAllNear = !S.showAllNear; render(); },
   toggleOffers() { S.showAllOffers = !S.showAllOffers; render(); },
   openForm(el) { S.form = { type: el.dataset.t, date: el.dataset.d, fam: el.dataset.v, host: el.dataset.v }; render(); },
   closeForm() { S.form = null; render(); },
@@ -1644,7 +1688,8 @@ const actions = {
   bookSame(el) { S.prefill = { programme: el.dataset.v, provider_id: el.dataset.pid, from: el.dataset.from, to: el.dataset.to }; S.tab = 'progs'; render(); },
   clickProvider(el) { API.logProvider(el.dataset.v, 'click'); },
   addFromListing(el) {
-    const pr = (S.near || []).find(x => x.id === el.dataset.v); const p = period();
+    const pr = rankedNear().find(x => x.id === el.dataset.v); const p = period();
+    if (pr.gapDays.length) { const r = runs(pr.gapDays)[0]; S.prefill = { programme: pr.name, provider_id: pr.id, from: r.start, to: r.end }; render(); return; }
     const s = (pr.sessions || []).find(s => p && s.end >= p.start_date && s.start <= p.end_date);
     S.prefill = { programme: pr.name, provider_id: pr.id, from: s ? (s.start < p.start_date ? p.start_date : s.start) : '', to: s ? (s.end > p.end_date ? p.end_date : s.end) : '' };
     render();
@@ -1824,6 +1869,9 @@ document.addEventListener('click', e => {
   const el = e.target.closest('[data-a]'); if (!el || !actions[el.dataset.a]) return;
   if (el.tagName !== 'A') e.preventDefault();
   actions[el.dataset.a](el, e);
+});
+document.addEventListener('keydown', e => {
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[role=button][data-a]')) { e.preventDefault(); e.target.click(); }
 });
 document.addEventListener('submit', e => {
   const f = e.target; if (!forms[f.dataset.f]) return;
