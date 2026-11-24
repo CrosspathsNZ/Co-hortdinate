@@ -190,6 +190,18 @@ nav button.on::after{content:"";width:22px;height:4px;border-radius:4px;backgrou
 .err{border:2px solid #ffc2c4;border-radius:14px;font-weight:700}
 .toggle{font-weight:700}
 input[type=checkbox]{accent-color:var(--brand);width:18px;height:18px}
+
+.avatar{width:44px;height:44px;border-radius:14px;background:linear-gradient(135deg,var(--brand),var(--pink));color:#fff;display:flex;align-items:center;justify-content:center;font:800 20px "Baloo 2",Nunito,sans-serif;flex:none}
+.card.sitter{border-left:6px solid var(--pink)}
+.card.flagged{border-color:#ffc2c4;background:#fff7f7}
+.sitters-intro{background:linear-gradient(180deg,#fff0f7,#fff 50%)}
+a.btn{display:inline-block;text-decoration:none;font-weight:800;border-radius:14px;padding:8px 13px;background:var(--brand);color:#fff;box-shadow:0 3px 0 var(--brand-dark)}
+a.btn.ghost{background:#fff;color:var(--brand);border:2px solid var(--brand);box-shadow:0 3px 0 var(--brand-soft);padding:6px 11px}
+.availgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin:6px 0}
+.avd{background:#f4efe6;color:var(--ink);box-shadow:0 2px 0 #e6ddcd;padding:6px 2px;font-size:12px;display:flex;flex-direction:column;align-items:center;border-radius:10px}
+.avd small{font-size:10px;color:var(--muted)}
+.avd.on{background:var(--home);color:#fff;box-shadow:0 2px 0 #1c6fd6}.avd.on small{color:#e3efff}
+nav button{font-size:11px}
 </style>
 </head>
 <body>
@@ -322,8 +334,36 @@ function supaBackend(sb) {
         const kidIds = kids.map(k => k.id);
         if (kidIds.length) progs = ok(await sb.from('kid_programmes').select('*').in('kid_id', kidIds).gte('date', lo).lte('date', hi));
       }
-      return { holidays, families, kids, plans, progs };
+      // Sitters (tolerates the sitters.sql migration not having been run yet)
+      let sitters = [], vouches = [], avail = [], flags = [], sittersMissing = false;
+      try {
+        sitters = ok(await sb.from('sitters').select('*').eq('group_id', gid).order('created_at'));
+        const sids = sitters.map(x => x.id);
+        if (sids.length) {
+          vouches = ok(await sb.from('sitter_vouches').select('*').in('sitter_id', sids));
+          avail = lo ? ok(await sb.from('sitter_availability').select('*').in('sitter_id', sids).gte('date', lo).lte('date', hi)) : [];
+          flags = ok(await sb.from('sitter_flags').select('*').in('sitter_id', sids));
+        }
+      } catch (e) { sittersMissing = true; }
+      return { holidays, families, kids, plans, progs, sitters, vouches, avail, flags, sittersMissing };
     },
+    async saveSitter(x) {
+      const row = { name: x.name, phone: x.phone || null, email: x.email || null, rate: x.rate || null, max_kids: x.max_kids || null, area: x.area || null, notes: x.notes || null, first_aid: !!x.first_aid, record_check: !!x.record_check };
+      if (x.id) { ok(await sb.from('sitters').update(row).eq('id', x.id)); return; }
+      const d = ok(await sb.from('sitters').insert({ ...row, group_id: x.group_id, added_by: x.added_by }).select().single());
+      ok(await sb.from('sitter_vouches').insert({ sitter_id: d.id, family_id: x.added_by, times_used: x.times_used || 1 }));
+    },
+    async deleteSitter(id) { ok(await sb.from('sitters').delete().eq('id', id)); },
+    async setVouch(sitter_id, family_id, times_used) {
+      if (times_used) ok(await sb.from('sitter_vouches').upsert({ sitter_id, family_id, times_used }, { onConflict: 'sitter_id,family_id' }));
+      else ok(await sb.from('sitter_vouches').delete().eq('sitter_id', sitter_id).eq('family_id', family_id));
+    },
+    async setAvail(sitter_id, date, on) {
+      if (on) ok(await sb.from('sitter_availability').upsert({ sitter_id, date }, { onConflict: 'sitter_id,date' }));
+      else ok(await sb.from('sitter_availability').delete().eq('sitter_id', sitter_id).eq('date', date));
+    },
+    async flagSitter(id, reason) { ok(await sb.rpc('flag_sitter', { p_sitter: id, p_reason: reason })); },
+    async restoreSitter(id) { ok(await sb.from('sitters').update({ hidden: false }).eq('id', id)); ok(await sb.from('sitter_flags').delete().eq('sitter_id', id)); },
     async saveHolidays(gid, list) {
       ok(await sb.from('group_holidays').delete().eq('group_id', gid));
       if (list.length) ok(await sb.from('group_holidays').insert(list.map(h => ({ group_id: gid, name: h.name, start_date: h.start_date, end_date: h.end_date, note: h.note || null }))));
@@ -372,6 +412,18 @@ function demoBackend() {
     prog('k6', '2027-01-12', '2027-01-14', 'Auckland Zoo holiday programme'); prog('k7', '2027-01-12', '2027-01-14', 'Auckland Zoo holiday programme');
     save();
   }
+  if (!db.sitters) {
+    db.sitters = [
+      { id: 's1', group_id: 'g1', added_by: 'f2', name: 'Jess T.', phone: '021 000 0001', email: '', rate: '$25/hr', max_kids: 4, area: 'Mt Albert', notes: 'Uni student, home for summer. Great with active kids, happy to do park trips.', first_aid: true, record_check: false, hidden: false },
+      { id: 's2', group_id: 'g1', added_by: 'f4', name: 'Aunty Mere', phone: '021 000 0002', email: '', rate: '$120/day', max_kids: 3, area: 'Sandringham', notes: 'Retired teacher. Prefers full days, can do school-age only.', first_aid: true, record_check: true, hidden: false },
+    ];
+    db.sitter_vouches = [{ sitter_id: 's1', family_id: 'f2', times_used: 6 }, { sitter_id: 's1', family_id: 'f3', times_used: 2 }, { sitter_id: 's2', family_id: 'f4', times_used: 10 }];
+    db.sitter_availability = [];
+    D.range('2027-01-05', '2027-01-15').filter(d => !D.weekend(d)).forEach(date => db.sitter_availability.push({ sitter_id: 's1', date }));
+    D.range('2027-01-25', '2027-02-02').filter(d => !D.weekend(d) && !PUBLIC_HOLIDAYS[d]).forEach(date => db.sitter_availability.push({ sitter_id: 's2', date }));
+    db.sitter_flags = [];
+    save();
+  }
   const ME = 'f1';
   return {
     demo: true,
@@ -407,8 +459,29 @@ function demoBackend() {
         families, kids,
         plans: db.day_plans.filter(p => fids.has(p.family_id)),
         progs: db.kid_programmes.filter(p => kidIds.has(p.kid_id)),
+        sitters: db.sitters.filter(x => x.group_id === gid),
+        vouches: db.sitter_vouches, avail: db.sitter_availability, flags: db.sitter_flags,
       };
     },
+    async saveSitter(x) {
+      if (x.id) { Object.assign(db.sitters.find(y => y.id === x.id), x); save(); return; }
+      const id = uid();
+      db.sitters.push({ ...x, id, hidden: false }); db.sitter_vouches.push({ sitter_id: id, family_id: x.added_by, times_used: x.times_used || 1 });
+      save();
+    },
+    async deleteSitter(id) { db.sitters = db.sitters.filter(x => x.id !== id); db.sitter_vouches = db.sitter_vouches.filter(v => v.sitter_id !== id); db.sitter_availability = db.sitter_availability.filter(v => v.sitter_id !== id); save(); },
+    async setVouch(sitter_id, family_id, times_used) {
+      db.sitter_vouches = db.sitter_vouches.filter(v => !(v.sitter_id === sitter_id && v.family_id === family_id));
+      if (times_used) db.sitter_vouches.push({ sitter_id, family_id, times_used });
+      save();
+    },
+    async setAvail(sitter_id, date, on) {
+      db.sitter_availability = db.sitter_availability.filter(v => !(v.sitter_id === sitter_id && v.date === date));
+      if (on) db.sitter_availability.push({ sitter_id, date });
+      save();
+    },
+    async flagSitter(id, reason) { db.sitter_flags.push({ id: uid(), sitter_id: id, family_id: ME, reason }); db.sitters.find(x => x.id === id).hidden = true; save(); },
+    async restoreSitter(id) { db.sitters.find(x => x.id === id).hidden = false; db.sitter_flags = db.sitter_flags.filter(f => f.sitter_id !== id); save(); },
     async saveHolidays(gid, list) { db.group_holidays = db.group_holidays.filter(h => h.group_id !== gid).concat(list.map(h => ({ ...h, id: uid(), group_id: gid }))); save(); },
     async saveKid(k) {
       if (k.id) Object.assign(db.kids.find(x => x.id === k.id), k);
@@ -434,7 +507,7 @@ let API;
 const S = {
   user: null, family: null, groups: [], groupId: store.get('hh-group', null), g: null,
   periodId: null, tab: store.get('hh-tab', 'cal'), showWeekends: store.get('hh-weekends', false),
-  openDay: null, editKid: null, prefill: null, sentTo: null, error: '', busy: false,
+  openDay: null, editKid: null, editSitter: null, availFor: null, addingSitter: false, prefill: null, sentTo: null, error: '', busy: false,
 };
 const $app = document.getElementById('app'), $hdr = document.getElementById('hdr'), $nav = document.getElementById('nav');
 
@@ -443,6 +516,8 @@ function indexGroup(raw) {
   raw.families.forEach(f => g.famById[f.id] = f);
   raw.plans.forEach(p => g.planMap[p.family_id + '|' + p.date] = p);
   raw.progs.forEach(p => g.progMap[p.kid_id + '|' + p.date] = p);
+  g.sitters = raw.sitters || []; g.vouches = raw.vouches || []; g.flags = raw.flags || [];
+  g.availSet = new Set((raw.avail || []).map(a => a.sitter_id + '|' + a.date));
   return g;
 }
 async function reloadGroup() {
@@ -509,12 +584,12 @@ function render() {
       ${S.groups.length > 1 ? `<select data-c="group">${S.groups.map(g => `<option value="${g.id}" ${g.id === S.groupId ? 'selected' : ''}>${esc(g.name)}</option>`).join('')}</select>` : ''}
       <select data-c="period">${S.g.holidays.map(h => `<option value="${h.id}" ${h.id === S.periodId ? 'selected' : ''}>${esc(h.name)}</option>`).join('')}</select>
     </div>`;
-  const tabs = [['cal', '📅', 'Calendar'], ['plan', '✏️', 'My plan'], ['progs', '🎨', 'Programmes'], ['family', '👨‍👩‍👧', 'Family'], ['group', '👥', 'Group']];
+  const tabs = [['cal', '📅', 'Calendar'], ['plan', '✏️', 'My plan'], ['progs', '🎨', 'Programmes'], ['sitters', '🧑‍🍼', 'Sitters'], ['family', '👨‍👩‍👧', 'Family'], ['group', '👥', 'Group']];
   $nav.hidden = false;
   $nav.innerHTML = tabs.map(([k, i, l]) => `<button data-a="tab" data-v="${k}" class="${S.tab === k ? 'on' : ''}"><span>${i}</span>${l}</button>`).join('');
   const banner = API.demo ? `<div class="banner"><b>Demo mode</b> — sample friends, saved in this browser only. Add your Supabase keys to go live.</div>` : '';
-  const views = { cal: viewCalendar, plan: viewPlan, progs: viewProgrammes, family: viewFamily, group: viewGroup };
-  $app.innerHTML = banner + errBox() + (p || S.tab === 'group' || S.tab === 'family' ? views[S.tab]() : `<div class="card">No holiday periods set up yet. ${isAdmin() ? 'Add them under Group.' : 'Ask your group admin to add them.'}</div>`);
+  const views = { cal: viewCalendar, plan: viewPlan, progs: viewProgrammes, sitters: viewSitters, family: viewFamily, group: viewGroup };
+  $app.innerHTML = banner + errBox() + (p || ['group', 'family', 'sitters'].includes(S.tab) ? views[S.tab]() : `<div class="card">No holiday periods set up yet. ${isAdmin() ? 'Add them under Group.' : 'Ask your group admin to add them.'}</div>`);
   if (S.prefill && S.tab === 'plan') applyPrefill();
 }
 const errBox = () => S.error ? `<div class="err">${esc(S.error)}</div>` : '';
@@ -630,6 +705,7 @@ function dayDetail(d, s) {
     ${Object.keys(byProg).length ? `<h4>At programmes</h4>${Object.entries(byProg).map(([p, xs]) => `<div style="margin-bottom:4px"><span class="pill prog">${esc(p)}</span> ${xs.map(x => `<span class="chip">${kidName(x.k, d)} <small>· ${fam(x.f)}</small></span>`).join(' ')}</div>`).join('')}` : ''}
     ${s.home.length ? `<h4>Home, not hosting</h4><div class="chips">${s.home.map(f => `<span class="chip">${fam(f)}</span>`).join('')}</div>` : ''}
     ${s.away.length ? `<h4>Away</h4><div class="chips">${s.away.map(f => `<span class="chip">${fam(f)}</span>`).join('')}</div>` : ''}
+    ${sittersOn(d).length ? `<h4>Sitters free this day ${s.short ? `<span class="pill spare">${s.need.length} kids could share one</span>` : ''}</h4><div class="chips">${sittersOn(d).map(x => `<span class="chip">🧑‍🍼 <b>${esc(x.name)}</b>${x.rate ? ` <small>· ${esc(x.rate)}</small>` : ''}${x.max_kids ? ` <small>· up to ${x.max_kids} kids</small>` : ''}</span>`).join('')}</div><button class="link" data-a="tab" data-v="sitters" style="padding-left:0">See sitters & contact details →</button>` : ''}
     ${s.unset.length ? `<h4 class="muted">Not filled in yet</h4><div class="chips">${s.unset.map(f => `<span class="chip">${fam(f)}</span>`).join('')}</div>` : ''}
   </div>`;
 }
@@ -768,6 +844,76 @@ const holRow = (h, i) => `<div class="holrow" data-hol>
   <input name="hname" value="${esc(h.name)}" required placeholder="Name"><input type="date" name="hstart" value="${h.start_date}" required><input type="date" name="hend" value="${h.end_date}" required>
   <button type="button" class="danger" data-a="rmHol">✕</button><input type="hidden" name="hnote" value="${esc(h.note || '')}"></div>`;
 
+// ───────────── Sitters ─────────────
+function sittersOn(d) { return S.g.sitters.filter(x => !x.hidden && S.g.availSet.has(x.id + '|' + d)); }
+function viewSitters() {
+  const g = S.g, me = S.family.id, admin = isAdmin(), p = period();
+  if (g.sittersMissing) return `<div class="card"><h2>Sitters</h2><p>Sitters isn't switched on for this app yet. Whoever set up Co-hortdinate needs to run <b>sitters.sql</b> once in Supabase → SQL Editor.</p></div>`;
+  const visible = g.sitters.filter(x => !x.hidden);
+  const hidden = g.sitters.filter(x => x.hidden && (admin || x.added_by === me));
+  const intro = `<div class="card sitters-intro"><h2>Sitters</h2>
+    <p class="muted">Babysitters and carers that families in <b>${esc(S.groups.find(x => x.id === S.groupId)?.name)}</b> have used themselves and recommend. Only families in this group can see them, and sitters can't sign up on their own.</p>
+    <p class="muted" style="font-size:12px">Co-hortdinate doesn't vet, employ or pay sitters. You contact and book them directly, and you're responsible for your own arrangements — check references and ask to see a first aid certificate or criminal record check if that matters to you.</p>
+    ${S.addingSitter || S.editSitter ? '' : '<button data-a="addSitter">+ Recommend a sitter you\'ve used</button>'}
+  </div>`;
+  const form = (S.addingSitter || S.editSitter) ? sitterForm(S.editSitter ? g.sitters.find(x => x.id === S.editSitter) : null) : '';
+  const cards = visible.length ? visible.map(x => sitterCard(x, me, admin, p)).join('') : (form ? '' : `<div class="card"><p>No sitters recommended in this group yet.</p><p class="muted">Got a babysitter you trust? Add them so friends can ask them too — and they'll get more work.</p></div>`);
+  const flagged = hidden.length ? `<div class="card flagged"><h2>Flagged — hidden from the group</h2>
+    ${hidden.map(x => { const fl = g.flags.filter(f => f.sitter_id === x.id); return `<div class="kidrow"><div class="grow"><b>${esc(x.name)}</b>${fl.map(f => `<div class="muted">“${esc(f.reason)}” — ${esc(g.famById[f.family_id]?.name || 'a family')}</div>`).join('')}${!admin ? '<div class="muted">Waiting for the group admin to review.</div>' : ''}</div>
+      ${admin ? `<button class="link" data-a="restoreSitter" data-v="${x.id}">Restore</button><button class="danger" data-a="delSitter" data-v="${x.id}">Remove</button>` : ''}</div>`; }).join('')}</div>` : '';
+  return intro + form + cards + flagged;
+}
+function sitterCard(x, me, admin, p) {
+  const g = S.g;
+  const vs = g.vouches.filter(v => v.sitter_id === x.id).sort((a, b) => b.times_used - a.times_used);
+  const mine = vs.find(v => v.family_id === me);
+  const dates = p ? D.range(p.start_date, p.end_date).filter(d => g.availSet.has(x.id + '|' + d)) : [];
+  const canEdit = x.added_by === me || admin;
+  const tel = (x.phone || '').replace(/[^\d+]/g, '');
+  return `<div class="card sitter">
+    <div class="flex"><div class="avatar">${esc(x.name.trim()[0] || '?').toUpperCase()}</div>
+      <div class="grow"><h2 style="margin:0">${esc(x.name)}</h2>
+      <div class="muted">${[x.rate && esc(x.rate), x.max_kids && `up to ${x.max_kids} kids`, x.area && esc(x.area)].filter(Boolean).join(' · ')}</div></div></div>
+    ${x.first_aid || x.record_check ? `<div class="chips" style="margin-top:8px">${x.first_aid ? '<span class="pill host">First aid</span>' : ''}${x.record_check ? '<span class="pill home">Criminal record check</span>' : ''}<span class="muted" style="font-size:11px;align-self:center">as told by the sitter, not checked by us</span></div>` : ''}
+    ${x.notes ? `<p>${esc(x.notes)}</p>` : ''}
+    <p class="muted" style="margin-top:8px">👍 Used by ${vs.map(v => `<b>${esc(g.famById[v.family_id]?.name || 'a family')}</b> (${v.times_used}×)`).join(', ') || 'no one yet'}</p>
+    <div class="flex" style="flex-wrap:wrap;margin-top:6px">
+      ${tel ? `<a class="btn" href="tel:${esc(tel)}">📞 Call</a><a class="btn ghost" href="sms:${esc(tel)}">💬 Text</a>` : ''}
+      ${x.email ? `<a class="btn ghost" href="mailto:${esc(x.email)}">✉️ Email</a>` : ''}
+      ${tel ? `<span class="muted">${esc(x.phone)}</span>` : ''}
+    </div>
+    ${p ? `<h3>Free in ${esc(p.name)}</h3>
+      ${dates.length ? `<div class="chips">${runs(dates).map(r => `<span class="pill spare">${runLabel(r)}</span>`).join('')}</div>` : '<p class="muted">No dates added yet.</p>'}
+      <button class="link" data-a="availFor" data-v="${x.id}" style="padding-left:0">${S.availFor === x.id ? 'Done' : '✏️ Update dates (after checking with them)'}</button>
+      ${S.availFor === x.id ? `<div class="availgrid" style="grid-template-columns:repeat(${S.showWeekends ? 7 : 5},minmax(0,1fr))">${'<span></span>'.repeat(Math.min((D.dow(periodDays()[0] || p.start_date) + 6) % 7, S.showWeekends ? 6 : 4))}${periodDays().map(d => `<button class="avd ${g.availSet.has(x.id + '|' + d) ? 'on' : ''}" data-a="toggleAvail" data-v="${x.id}" data-d="${d}">${D.label(d)}<small>${D.parse(d).toLocaleDateString('en-NZ', { month: 'short', timeZone: 'UTC' })}</small></button>`).join('')}</div>` : ''}` : ''}
+    <div class="flex" style="flex-wrap:wrap;margin-top:10px;border-top:2px solid var(--line);padding-top:8px">
+      ${mine ? `<span class="pill host">✓ You've used them (${mine.times_used}×)</span>${x.added_by !== me ? `<button class="link" data-a="unvouch" data-v="${x.id}">Undo</button>` : `<button class="link" data-a="vouch" data-v="${x.id}">Update count</button>`}`
+        : `<button class="ghost" data-a="vouch" data-v="${x.id}">👍 We've used them too</button>`}
+      <span class="grow"></span>
+      ${canEdit ? `<button class="link" data-a="editSitter" data-v="${x.id}">Edit</button><button class="danger" data-a="delSitter" data-v="${x.id}">Remove</button>` : ''}
+      <button class="danger" data-a="flagSitter" data-v="${x.id}">🚩 Flag</button>
+    </div>
+  </div>`;
+}
+function sitterForm(x) {
+  return `<div class="card"><h2>${x ? 'Edit ' + esc(x.name) : 'Recommend a sitter'}</h2>
+  <form data-f="saveSitter">
+    <input type="hidden" name="id" value="${x?.id || ''}">
+    <label>Name</label><input name="name" required maxlength="60" value="${esc(x?.name || '')}" placeholder="e.g. Jess T.">
+    <div class="grid2"><div><label>Phone</label><input name="phone" type="tel" maxlength="30" value="${esc(x?.phone || '')}"></div>
+    <div><label>Email (optional)</label><input name="email" type="email" maxlength="120" value="${esc(x?.email || '')}"></div></div>
+    <div class="grid2"><div><label>Rate</label><input name="rate" maxlength="40" value="${esc(x?.rate || '')}" placeholder="e.g. $25/hr or $120/day"></div>
+    <div><label>Max kids at once</label><input name="max_kids" type="number" min="1" max="20" value="${x?.max_kids || ''}"></div></div>
+    <label>Area</label><input name="area" maxlength="60" value="${esc(x?.area || '')}" placeholder="Suburb, or 'comes to you'">
+    <label>Notes</label><textarea name="notes" maxlength="300" rows="3" placeholder="What are they like? Ages they're good with, what they'll do with the kids…">${esc(x?.notes || '')}</textarea>
+    <label class="toggle" style="margin-top:8px"><input type="checkbox" name="first_aid" ${x?.first_aid ? 'checked' : ''}> They've told us they hold a current first aid certificate</label>
+    <label class="toggle"><input type="checkbox" name="record_check" ${x?.record_check ? 'checked' : ''}> They've shown us a criminal record or police check</label>
+    ${x ? '' : `<label>How many times have you used them?</label><input name="times_used" type="number" min="1" max="999" value="1" required style="max-width:120px">
+    <label class="toggle" style="margin-top:10px;color:var(--ink)"><input type="checkbox" name="confirm" required> We've used this person to look after our own kids, and they're happy for us to share their details with this group</label>`}
+    <div class="flex" style="margin-top:10px"><button>${x ? 'Save' : 'Add sitter'}</button><button type="button" class="link" data-a="cancelSitter">Cancel</button></div>
+  </form></div>`;
+}
+
 // ───────────── Actions ─────────────
 async function run(fn, reload = true) {
   S.error = '';
@@ -778,6 +924,31 @@ async function run(fn, reload = true) {
 function setPlanLocal(row) { S.g.planMap[row.family_id + '|' + row.date] = row; }
 
 const actions = {
+  addSitter() { S.addingSitter = true; S.editSitter = null; render(); },
+  editSitter(el) { S.editSitter = el.dataset.v; S.addingSitter = false; render(); scrollTo(0, 0); },
+  cancelSitter() { S.addingSitter = false; S.editSitter = null; render(); },
+  delSitter(el) { const x = S.g.sitters.find(y => y.id === el.dataset.v); if (confirm(`Remove ${x.name} from this group's sitters?`)) run(() => API.deleteSitter(x.id)); },
+  vouch(el) {
+    const x = S.g.sitters.find(y => y.id === el.dataset.v);
+    const cur = S.g.vouches.find(v => v.sitter_id === x.id && v.family_id === S.family.id);
+    const n = parseInt(prompt(`Only recommend ${x.name} if they've looked after your kids.\n\nHow many times have you used them?`, cur ? cur.times_used : '1'), 10);
+    if (!n || n < 1) return;
+    run(() => API.setVouch(x.id, S.family.id, Math.min(n, 999)));
+  },
+  unvouch(el) { run(() => API.setVouch(el.dataset.v, S.family.id, 0)); },
+  flagSitter(el) {
+    const x = S.g.sitters.find(y => y.id === el.dataset.v);
+    const reason = prompt(`Flag ${x.name}?\n\nThis hides them from the whole group straight away and asks the group admin to review. What's the concern?`);
+    if (!reason || !reason.trim()) return;
+    run(() => API.flagSitter(x.id, reason.trim().slice(0, 500)));
+  },
+  restoreSitter(el) { run(() => API.restoreSitter(el.dataset.v)); },
+  availFor(el) { S.availFor = S.availFor === el.dataset.v ? null : el.dataset.v; render(); },
+  toggleAvail(el) {
+    const key = el.dataset.v + '|' + el.dataset.d, on = !S.g.availSet.has(key);
+    on ? S.g.availSet.add(key) : S.g.availSet.delete(key); render();
+    run(() => API.setAvail(el.dataset.v, el.dataset.d, on), false);
+  },
   tab(el) { S.tab = el.dataset.v; store.set('hh-tab', S.tab); S.openDay = null; render(); scrollTo(0, 0); },
   toggleOffers() { S.showAllOffers = !S.showAllOffers; render(); },
   openDay(el) { S.openDay = S.openDay === el.dataset.v ? null : el.dataset.v; render(); },
@@ -828,6 +999,14 @@ function alertInline(msg) {
 }
 
 const forms = {
+  saveSitter(f) {
+    const x = { id: f.id.value || undefined, group_id: S.groupId, added_by: S.family.id, name: f.name.value.trim(), phone: f.phone.value.trim(), email: f.email.value.trim(),
+      rate: f.rate.value.trim(), max_kids: f.max_kids.value ? Math.max(1, Math.min(20, parseInt(f.max_kids.value, 10))) : null, area: f.area.value.trim(), notes: f.notes.value.trim(),
+      first_aid: f.first_aid.checked, record_check: f.record_check.checked, times_used: f.times_used ? parseInt(f.times_used.value, 10) || 1 : undefined };
+    if (x.id) { delete x.group_id; delete x.added_by; }
+    S.addingSitter = false; S.editSitter = null;
+    run(() => API.saveSitter(x));
+  },
   async signin(f) {
     const email = f.email.value.trim(); S.busy = true; render();
     await run(async () => { await API.signIn(email); S.sentTo = email; }, false); S.busy = false; render();
