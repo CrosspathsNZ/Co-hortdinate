@@ -302,8 +302,8 @@ nav .badge{position:absolute;top:-4px;right:-10px;background:var(--need);color:#
 // (turns on calendar subscriptions and provider card payments).
 // ─────────────────────────────────────────────────────────────
 const CONFIG = {
-  SUPABASE_URL: 'https://tbbwotwysaioqrvzczgw.supabase.co',
-  SUPABASE_ANON_KEY: 'sb_publishable_Aj9xj5am6RdAnmXbhfl6Wg_vYu5RY7-',
+  SUPABASE_URL: 'https://gtxmeeqcecvxafdslxev.supabase.co',
+  SUPABASE_ANON_KEY: 'sb_publishable_OkviSx05CiEyBSOES3mFKw_Xg2wz8SU',
   SERVER_READY: false,
   // GST: leave false until you're registered for GST, then set true and add your GST number
   GST_REGISTERED: false,
@@ -2159,7 +2159,7 @@ const actions = {
   downloadIcs() {
     const { text, count } = buildIcs();
     if (!count) { toast('No arrangements or programme bookings to add yet.'); return; }
-    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: 'text/calendar' })); a.download = 'co-hortdinate.ics';
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: 'text/calendar' })); a.download = 'cohortdinate.ics';
     document.body.appendChild(a); a.click(); a.remove(); toast(`📅 ${count} event${count > 1 ? 's' : ''} downloaded`);
   },
   switchGroup(el) { S.groupId = el.dataset.v; store.set('hh-group', S.groupId); S.periodId = null; S.tab = 'cal'; run(() => Promise.resolve()); },
