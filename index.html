@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Co-hortdinate</title>
+<title>Cohortdinate</title>
 <meta name="theme-color" content="#6c4cf1">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
@@ -209,6 +209,11 @@ nav button{font-size:11px}
 
 
 
+
+
+
+
+
 /* ───────── v3 additions ───────── */
 /* public holidays: soft grey (programmes keep sunshine yellow) */
 .cell.ph{background:#f1eef6;border-color:#ddd6e8;box-shadow:0 3px 0 #e8e2f0}
@@ -267,6 +272,21 @@ nav[hidden]{display:none!important}
 .nearnote{margin:-2px 4px 10px}
 button.link.inl{padding:0;font-size:inherit}
 button.showall{width:100%;margin-bottom:12px}
+/* v4 */
+nav button{font-size:10.5px;padding:8px 0 7px}
+nav button span{position:relative}
+nav .badge{position:absolute;top:-4px;right:-10px;background:var(--need);color:#fff;font:800 10px Nunito,sans-serif;font-style:normal;border-radius:999px;padding:1px 5px}
+.phones{font-size:13px;margin-top:4px}.phones a{color:var(--brand);font-weight:800;text-decoration:none;white-space:nowrap}
+.card.play{border-left:6px solid var(--pink);background:linear-gradient(180deg,#fff0f7,#fff 55%)}
+.card.pd{padding:12px 14px}
+.card.pd.birthday{border-color:#ffc2dc;box-shadow:0 4px 0 #ffe0ee}
+.pdemoji{font-size:30px;line-height:1;margin-right:4px}
+.invitelist{display:grid;gap:6px;margin:4px 0}
+.toggle.invite{align-items:flex-start;background:#faf7ff;border-radius:12px;padding:8px 10px;margin:0;color:var(--ink)}
+.privacy h3{color:var(--brand);margin-top:16px}.privacy ul{padding-left:20px}.privacy li{margin:4px 0}
+.gstline{font-weight:800;color:var(--ink);background:#f4f0ff;border-radius:10px;padding:8px 12px}
+.holrow{grid-template-columns:1fr 1fr auto}
+.holrow input[name=hname]{grid-column:1/-1}
 </style>
 </head>
 <body>
@@ -285,6 +305,9 @@ const CONFIG = {
   SUPABASE_URL: 'https://tbbwotwysaioqrvzczgw.supabase.co',
   SUPABASE_ANON_KEY: 'sb_publishable_Aj9xj5am6RdAnmXbhfl6Wg_vYu5RY7-',
   SERVER_READY: false,
+  // GST: leave false until you're registered for GST, then set true and add your GST number
+  GST_REGISTERED: false,
+  GST_NUMBER: '',
 };
 const FUNCTIONS_URL = CONFIG.SUPABASE_URL ? CONFIG.SUPABASE_URL.replace(/\/$/, '') + '/functions/v1/cohortdinate' : '';
 
@@ -306,11 +329,12 @@ const INTERESTS = [
   ['reading', '📚', 'Reading & writing'], ['culture', '🌏', 'Te reo & culture'], ['trips', '🚌', 'Trips & excursions'], ['quiet', '🧘', 'Quiet & low-key'],
 ];
 const INTEREST = Object.fromEntries(INTERESTS.map(([k, e, l]) => [k, { e, l }]));
+const PD_KINDS = { stay: ['🛝', 'Stay & play', 'Parents come too'], dropoff: ['🏠', 'Drop-off', 'Kids stay with the host'], birthday: ['🎂', 'Birthday party', 'Party invite with RSVPs'] };
 const COUNTRIES = { NZ: 'New Zealand', AU: 'Australia (coming soon)' };
 const ONEOFF_TYPES = ['Teacher-only day', 'Strike day', 'Sick day', 'Early finish', 'School event'];
 const PLAN_INFO = {
   basic: { name: 'Basic', price: 'Free', bits: ['Name, ages, interests & booking link', 'Shown to families nearby'] },
-  standard: { name: 'Standard', price: '$199/yr or $69 per holiday', bits: ['Full listing: about, prices, dates, phone', 'Your Co-hortdinate offer', 'Suggested on days families need cover', 'Views, clicks & local demand stats'] },
+  standard: { name: 'Standard', price: '$199/yr or $69 per holiday', bits: ['Full listing: about, prices, dates, phone', 'Your Cohortdinate offer', 'Suggested on days families need cover', 'Views, clicks & local demand stats'] },
   featured: { name: 'Featured', price: '$399/yr or $129 per holiday', bits: ['Everything in Standard', 'Top of the list nearby, with a Featured badge', 'Included in the "holidays start in 3 weeks" email to nearby families'] },
 };
 
@@ -359,6 +383,8 @@ function kmBetween(a, b) {
   const h = Math.sin(r(b.lat - a.lat) / 2) ** 2 + Math.cos(r(a.lat)) * Math.cos(r(b.lat)) * Math.sin(r(b.lng - a.lng) / 2) ** 2;
   return 2 * R * Math.asin(Math.sqrt(h));
 }
+const fmtTime = t => { if (!t) return ''; const [h, m] = t.split(':').map(Number); return `${((h + 11) % 12) + 1}${m ? ':' + pad(m) : ''}${h < 12 ? 'am' : 'pm'}`; };
+const ordinal = n => n + (['th', 'st', 'nd', 'rd'][(n % 100 - 20) % 10] || ['th', 'st', 'nd', 'rd'][n % 100] || 'th');
 const listNames = arr => arr.length <= 1 ? (arr[0] || '') : arr.slice(0, -1).join(', ') + ' & ' + arr[arr.length - 1];
 function toast(msg) {
   const el = document.createElement('div'); el.className = 'toast'; el.textContent = msg;
@@ -385,6 +411,7 @@ function supaBackend(sb) {
       });
       return user;
     },
+    async publicSettings() { return await soft(sb.rpc('public_settings'), {}); },
     async signIn(email) { ok(await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin + location.pathname } })); },
     async verify(email, token) { const d = ok(await sb.auth.verifyOtp({ email, token, type: 'email' })); user = d.user; },
     async signOut() { await sb.auth.signOut(); user = null; },
@@ -393,28 +420,44 @@ function supaBackend(sb) {
     async getMe() {
       const isAdmin = (await soft(sb.from('app_admins').select('user_id').eq('user_id', user.id), [])).length > 0;
       const places = await soft(sb.from('places').select('*').order('region').order('name'), []);
+      const settings = await soft(sb.rpc('public_settings'), {});
       const pu = await soft(sb.from('provider_users').select('provider_id').eq('user_id', user.id).maybeSingle(), null);
       const fu = ok(await sb.from('family_users').select('family_id, families(*)').eq('user_id', user.id).maybeSingle());
-      if (!fu) return { family: null, groups: [], providerId: pu?.provider_id || null, isAdmin, places };
+      if (!fu) return { family: null, groups: [], providerId: pu?.provider_id || null, isAdmin, places, settings };
       const code = await soft(sb.from('family_codes').select('join_code, calendar_token').eq('family_id', fu.family_id).maybeSingle(), null);
-      const gs = ok(await sb.from('group_families').select('role, groups(*)').eq('family_id', fu.family_id));
+      const gs = ok(await sb.from('group_families').select('role, show_hosting, show_need, groups(*)').eq('family_id', fu.family_id));
+      const adults = await soft(sb.from('family_adults').select('*').eq('family_id', fu.family_id).order('created_at'), []);
+      const contacts = adults.length ? await soft(sb.from('adult_contacts').select('*').in('adult_id', adults.map(a => a.id)), []) : [];
       return {
         family: { ...fu.families, join_code: code?.join_code, calendar_token: code?.calendar_token },
-        groups: gs.filter(r => r.groups).map(r => ({ ...r.groups, role: r.role })), providerId: pu?.provider_id || null, isAdmin, places,
+        groups: gs.filter(r => r.groups).map(r => ({ ...r.groups, role: r.role, show_hosting: r.show_hosting, show_need: r.show_need })),
+        adults: adults.map(a => ({ ...a, phone: contacts.find(c => c.adult_id === a.id)?.phone || '' })), myUserId: user.id,
+        providerId: pu?.provider_id || null, isAdmin, places, settings,
       };
     },
-    async createFamily(name) { ok(await sb.rpc('create_family', { p_name: name })); },
-    async joinFamily(code) { ok(await sb.rpc('join_family', { p_code: code })); },
+    async createFamily(name, adult, phone) { ok(await sb.rpc('create_family', { p_name: name, p_adult: adult, p_phone: phone || null })); },
+    async joinFamily(code, adult, phone) { ok(await sb.rpc('join_family', { p_code: code, p_adult: adult, p_phone: phone || null })); },
+    async saveAdult(a) {
+      ok(await sb.from('family_adults').update({ first_name: a.first_name }).eq('id', a.id));
+      ok(await sb.from('adult_contacts').upsert({ adult_id: a.id, phone: a.phone || null }, { onConflict: 'adult_id' }));
+    },
+    async deleteFamily() { ok(await sb.rpc('delete_my_family')); await sb.auth.signOut(); },
     async updateFamily(id, patch) { ok(await sb.from('families').update(patch).eq('id', id)); },
     async createGroup(name, country, region) { return ok(await sb.rpc('create_group', { p_name: name, p_country: country, p_region: region })); },
     async updateGroup(id, patch) { ok(await sb.from('groups').update(patch).eq('id', id)); },
     async joinGroup(code) { return ok(await sb.rpc('join_group', { p_code: code })); },
-    async leaveGroup(gid, fid) { ok(await sb.from('group_families').delete().eq('group_id', gid).eq('family_id', fid)); },
+    async leaveGroup(gid) { ok(await sb.rpc('leave_group', { p_group: gid })); },
+    async removeFamily(gid, fid) { ok(await sb.rpc('remove_from_group', { p_group: gid, p_family: fid })); },
+    async approveMember(gid, fid) { ok(await sb.rpc('approve_member', { p_group: gid, p_family: fid })); },
+    async setAdmin(gid, fid, on) { ok(await sb.rpc('set_group_admin', { p_group: gid, p_family: fid, p_on: on })); },
+    async resetCode(gid) { return ok(await sb.rpc('reset_invite_code', { p_group: gid })); },
+    async setVisibility(gid, hosting, need) { ok(await sb.rpc('set_group_visibility', { p_group: gid, p_show_hosting: hosting, p_show_need: need })); },
+    async pendingMembers(gid) { return await soft(sb.rpc('pending_members', { p_group: gid }), []); },
 
     async loadGroup(gid, country) {
       const holidays = ok(await sb.from('group_holidays').select('*').eq('group_id', gid).order('start_date'));
-      const mem = ok(await sb.from('group_families').select('family_id, role, families(*)').eq('group_id', gid));
-      const families = mem.filter(m => m.families).map(m => ({ ...m.families, role: m.role }));
+      const mem = ok(await sb.from('group_families').select('family_id, role, show_hosting, show_need, families(*)').eq('group_id', gid));
+      const families = mem.filter(m => m.families && m.role !== 'pending').map(m => ({ ...m.families, role: m.role, show_hosting: m.show_hosting, show_need: m.show_need }));
       const fids = families.map(f => f.id);
       const kids = fids.length ? ok(await sb.from('kids').select('*').in('family_id', fids).order('created_at')) : [];
       const kidIds = kids.map(k => k.id);
@@ -428,7 +471,7 @@ function supaBackend(sb) {
       }
       const notes = kidIds.length ? await soft(sb.from('kid_notes').select('*').in('kid_id', kidIds), []) : [];
       const pubHols = await soft(sb.from('public_holidays').select('*').eq('country', country || 'NZ'), []);
-      let sitters = [], vouches = [], avail = [], flags = [], sittersMissing = false;
+      let sitters = [], vouches = [], avail = [], flags = [], sittersMissing = false, sittersError = false;
       try {
         sitters = ok(await sb.from('sitters').select('*').eq('group_id', gid).order('created_at'));
         const sids = sitters.map(x => x.id);
@@ -437,8 +480,18 @@ function supaBackend(sb) {
           avail = lo ? ok(await sb.from('sitter_availability').select('*').in('sitter_id', sids).gte('date', lo).lte('date', hi)) : [];
           flags = ok(await sb.from('sitter_flags').select('*').in('sitter_id', sids));
         }
-      } catch (e) { sittersMissing = true; }
-      return { holidays, families, kids, plans, progs, bookings, notes, pubHols, sitters, vouches, avail, flags, sittersMissing };
+      } catch (e) {
+        // only say "not switched on" if the sitters tables really don't exist; anything else is a hiccup worth retrying
+        if (/does not exist|could not find the table|PGRST205|42P01/i.test(e.message || '')) sittersMissing = true; else sittersError = true;
+      }
+      const adults = fids.length ? await soft(sb.from('family_adults').select('id, family_id, first_name, user_id').in('family_id', fids), []) : [];
+      const contacts = adults.length ? await soft(sb.from('adult_contacts').select('*').in('adult_id', adults.map(a => a.id)), []) : [];
+      const cross = await soft(sb.rpc('cross_group_load', { p_group: gid }), { covered: [], hosting: [] });
+      const playdates = await soft(sb.from('playdates').select('*').eq('group_id', gid).eq('status', 'active').gte('date', D.add(D.today(), -1)).order('date'), []);
+      const pids = playdates.map(p => p.id);
+      const invites = pids.length ? await soft(sb.from('playdate_invites').select('*').in('playdate_id', pids), []) : [];
+      const rsvps = pids.length ? await soft(sb.from('playdate_rsvps').select('*').in('playdate_id', pids), []) : [];
+      return { holidays, families, kids, plans, progs, bookings, notes, pubHols, sitters, vouches, avail, flags, sittersMissing, sittersError, adults, contacts, cross, playdates, invites, rsvps };
     },
     async saveHolidays(gid, list) {
       ok(await sb.from('group_holidays').delete().eq('group_id', gid).eq('kind', 'holiday'));
@@ -460,9 +513,18 @@ function supaBackend(sb) {
     async deleteProgs(ids) { ok(await sb.from('kid_programmes').delete().in('id', ids)); },
     // bookings
     async createBookings(gid, date, part, kidIds, hostId, note) { return ok(await sb.rpc('create_bookings', { p_group: gid, p_date: date, p_part: part, p_kids: kidIds, p_host: hostId, p_note: note || null })); },
-    async respondBookings(ids, accept) { ok(await sb.rpc('respond_booking', { p_ids: ids, p_accept: accept })); },
+    async respondBookings(ids, accept, force) { ok(await sb.rpc('respond_booking', { p_ids: ids, p_accept: accept, p_force: !!force })); },
     async cancelBookings(ids) { ok(await sb.rpc('cancel_bookings', { p_ids: ids })); },
     async urgentCall(gid, date, part, msg) { return ok(await sb.rpc('urgent_call', { p_group: gid, p_date: date, p_part: part, p_message: msg })); },
+    // playdates
+    async createPlaydate(x) {
+      return ok(await sb.rpc('create_playdate', { p_group: x.group_id, p_kind: x.kind, p_title: x.title, p_date: x.date, p_start: x.start_time || null, p_end: x.end_time || null,
+        p_place: x.place || null, p_note: x.note || null, p_open: x.open_to_group, p_families: x.families || [], p_max: x.max_kids || null, p_rsvp_by: x.rsvp_by || null,
+        p_gift: x.gift_note || null, p_theme: x.theme || null, p_bday_kid: x.birthday_kid || null }));
+    },
+    async cancelPlaydate(id) { ok(await sb.rpc('cancel_playdate', { p_id: id })); },
+    async rsvp(id, status, kids, share, note) { ok(await sb.rpc('rsvp_playdate', { p_id: id, p_status: status, p_kids: kids, p_share: share, p_note: note || null })); },
+    async playdateDetails(id) { return ok(await sb.rpc('playdate_details', { p_id: id })); },
     // sitters
     async saveSitter(x) {
       const row = { name: x.name, phone: x.phone || null, email: x.email || null, rate: x.rate || null, max_kids: x.max_kids || null, area: x.area || null, notes: x.notes || null, first_aid: !!x.first_aid, record_check: !!x.record_check };
@@ -501,7 +563,7 @@ function supaBackend(sb) {
     async addSession(row) { ok(await sb.from('provider_sessions').insert(row)); },
     async deleteSession(id) { ok(await sb.from('provider_sessions').delete().eq('id', id)); },
     async checkout(plan, term) {
-      if (!CONFIG.SERVER_READY) throw new Error('Card payments aren\'t switched on yet. Contact the Co-hortdinate team to upgrade.');
+      if (!CONFIG.SERVER_READY) throw new Error('Card payments aren\'t switched on yet. Contact the Cohortdinate team to upgrade.');
       const res = await fetch(FUNCTIONS_URL + '/checkout', { method: 'POST', headers: { Authorization: 'Bearer ' + await this.accessToken(), 'Content-Type': 'application/json', apikey: CONFIG.SUPABASE_ANON_KEY }, body: JSON.stringify({ plan, term }) });
       const d = await res.json();
       if (!res.ok) throw new Error(d.error || 'Payment could not start');
@@ -509,6 +571,10 @@ function supaBackend(sb) {
     },
     // app admin
     async adminProviders() { return ok(await sb.rpc('admin_providers')); },
+    async adminFindSitters(q) { return ok(await sb.rpc('admin_find_sitters', { p_q: q })); },
+    async adminDeleteSitter(id) { ok(await sb.rpc('admin_delete_sitter', { p_id: id })); },
+    async adminBackups() { return ok(await sb.rpc('admin_backups')); },
+    async adminBackupDownload(day) { return ok(await sb.rpc('admin_backup_download', { p_day: day || null })); },
     async adminUpdateProvider(id, status, plan, paidUntil, note) { ok(await sb.rpc('admin_update_provider', { p_id: id, p_status: status, p_plan: plan, p_paid_until: paidUntil || null, p_note: note || null })); },
     calendarUrl(token) { return CONFIG.SERVER_READY && token ? FUNCTIONS_URL + '/calendar?token=' + token : ''; },
   };
@@ -523,27 +589,38 @@ const DEMO_HOLIDAYS = [
   { name: 'Summer 2027/28', start_date: '2027-12-18', end_date: '2028-02-01', note: 'Provisional — Term 4 ends by Fri 17 Dec; 2028 Term 1 start still to confirm' },
 ];
 function demoBackend() {
-  const KEY = 'co-hortdinate-demo-v3';
+  const KEY = 'cohortdinate-demo-v4';
   let db = store.get(KEY, null);
   const save = () => store.set(KEY, db);
   const places = DEMO_PLACES.map(([id, country, region, name, lat, lng]) => ({ id, country, region, name, lat, lng }));
   const placeId = n => places.find(p => p.name === n)?.id;
-  let as = store.get('co-hortdinate-demo-as', 'family');   // demo can preview the provider portal
   const ME = 'f1';
   const email = (to, subject) => toast(`📧 Email to ${to}: ${subject} (demo — not really sent)`);
   if (!db) {
     db = { families: [], groups: [], group_families: [], group_holidays: [], kids: [], day_plans: [], kid_programmes: [], care_bookings: [], kid_notes: [],
+      family_adults: [], playdates: [], playdate_invites: [], playdate_rsvps: [],
       sitters: [], sitter_vouches: [], sitter_availability: [], sitter_flags: [], providers: [], provider_locations: [], provider_sessions: [], provider_events: [] };
     const fam = (id, name, place, auto = true) => db.families.push({ id, name, join_code: id.toUpperCase() + 'CODE', calendar_token: uid(), place_id: placeId(place), auto_accept: auto, email_reminders: true });
     fam('f1', 'Our family', 'Mt Albert'); fam('f2', 'Sharma whānau', 'Sandringham', false); fam('f3', 'Wilsons', 'Kingsland'); fam('f4', 'Ngata family', 'Point Chevalier');
+    fam('f5', 'Nguyen family', 'Grey Lynn');
     db.groups.push({ id: 'g1', name: 'School mates (demo)', invite_code: 'DEMO2027', country: 'NZ', region: 'Auckland' });
-    ['f1', 'f2', 'f3', 'f4'].forEach((f, i) => db.group_families.push({ group_id: 'g1', family_id: f, role: i ? 'member' : 'admin' }));
+    db.groups.push({ id: 'g2', name: 'Room 12 class (demo)', invite_code: 'ROOM1212', country: 'NZ', region: 'Auckland' });
+    const gf = (g, f, role, t) => db.group_families.push({ group_id: g, family_id: f, role, show_hosting: true, show_need: true, joined_at: t });
+    gf('g1', 'f1', 'admin', '2026-11-01'); gf('g1', 'f2', 'admin', '2026-11-02'); gf('g1', 'f3', 'member', '2026-11-03'); gf('g1', 'f4', 'member', '2026-11-04'); gf('g1', 'f5', 'pending', '2026-11-25');
+    gf('g2', 'f1', 'admin', '2026-11-05'); gf('g2', 'f3', 'member', '2026-11-06');
+    const adult = (id, f, n, phone, user) => db.family_adults.push({ id, family_id: f, first_name: n, phone, user_id: user || null });
+    adult('a1', 'f1', 'Priya', '021 555 0001', 'demo'); adult('a2', 'f1', 'Raj', '021 555 0002');
+    adult('a3', 'f2', 'Anjali', '022 555 0003'); adult('a4', 'f2', 'Vikram', '022 555 0004');
+    adult('a5', 'f3', 'Kate', '027 555 0005'); adult('a6', 'f3', 'Tom', '027 555 0006');
+    adult('a7', 'f4', 'Aroha', '021 555 0007'); adult('a8', 'f5', 'Linh', '');
     DEMO_HOLIDAYS.forEach(h => db.group_holidays.push({ id: uid(), group_id: 'g1', kind: 'holiday', ...h }));
+    DEMO_HOLIDAYS.forEach(h => db.group_holidays.push({ id: uid(), group_id: 'g2', kind: 'holiday', ...h }));
     db.group_holidays.push({ id: uid(), group_id: 'g1', kind: 'oneoff', name: 'Teacher-only day', start_date: '2027-03-05', end_date: '2027-03-05', created_by: 'f2' });
     const kid = (id, f, n, b, g, i) => db.kids.push({ id, family_id: f, first_name: n, birth_month: b, gender: g, interests: i });
     kid('k1', 'f1', 'Anaya', '2018-03-01', 'girl', ['arts', 'science', 'animals']); kid('k2', 'f1', 'Arjun', '2021-06-01', 'boy', ['sport', 'building']);
     kid('k3', 'f2', 'Mia', '2018-09-01', 'girl', ['arts', 'dance']); kid('k4', 'f2', 'Leo', '2020-02-01', 'boy', ['sport']);
     kid('k5', 'f3', 'Ava', '2017-11-01', 'girl', ['coding', 'science']);
+    kid('k8', 'f5', 'Minh', '2018-06-01', 'boy', ['building']);
     kid('k6', 'f4', 'Tama', '2019-05-01', 'boy', ['sport', 'outdoors']); kid('k7', 'f4', 'Hine', '2016-08-01', 'girl', ['music', 'culture']);
     db.kid_notes.push({ kid_id: 'k3', allergies: 'Peanuts (anaphylaxis)', needs: 'EpiPen is in her backpack', pickup: 'Priya (mum) by 5:30pm', emergency: 'Raj 021 555 0101', share_in_email: true });
     const plan = (f, from, to, status, capacity = 0, note = '', part = 'full') => D.range(from, to).filter(d => !D.weekend(d) && !DEMO_PH[d])
@@ -552,6 +629,8 @@ function demoBackend() {
     plan('f2', '2027-01-25', '2027-01-29', 'host', 2, 'Beach most afternoons');
     plan('f3', '2026-12-21', '2027-01-08', 'away');
     plan('f3', '2027-01-11', '2027-01-15', 'host', 3, 'Till 4pm');
+    db.day_plans.filter(p => p.family_id === 'f3' && p.status === 'host').forEach(p => p.host_adults = ['a5']);
+    plan('f1', '2027-01-14', '2027-01-14', 'need');
     plan('f3', '2027-01-18', '2027-02-02', 'need');
     plan('f4', '2027-01-11', '2027-02-02', 'need');
     plan('f4', '2027-01-20', '2027-01-22', 'host', 1, '', 'am');
@@ -560,11 +639,14 @@ function demoBackend() {
     prog('k6', '2027-01-12', '2027-01-14', 'Auckland Zoo holiday programme', 'p3'); prog('k7', '2027-01-12', '2027-01-14', 'Auckland Zoo holiday programme', 'p3');
     const book = (date, kidId, child, host, status, part = 'full') => db.care_bookings.push({ id: uid(), group_id: 'g1', date, part, kid_id: kidId, child_family: child, host_family: host, status, initiated_by: status === 'requested' ? child : host, note: null, updated_at: new Date().toISOString() });
     book('2027-01-12', 'k3', 'f2', 'f3', 'confirmed'); book('2027-01-12', 'k4', 'f2', 'f3', 'confirmed');
+    // arranged in the other group: shows as "sorted elsewhere" and uses up one of the Wilsons' spots in School mates
+    book('2027-01-14', 'k2', 'f1', 'f3', 'confirmed'); db.care_bookings[db.care_bookings.length - 1].group_id = 'g2';
     book('2027-01-13', 'k6', 'f4', 'f3', 'confirmed', 'pm');
     book('2027-01-26', 'k6', 'f4', 'f2', 'requested'); book('2027-01-26', 'k7', 'f4', 'f2', 'requested');
     book('2027-01-21', 'k5', 'f3', 'f4', 'requested', 'am');
     // things waiting on "Our family" in the demo
     plan('f1', '2027-01-27', '2027-01-27', 'host', 2, 'Happy to do the pools');
+    db.day_plans.find(p => p.family_id === 'f1' && p.date === '2027-01-27').host_adults = ['a2'];
     book('2027-01-27', 'k6', 'f4', 'f1', 'requested'); book('2027-01-27', 'k7', 'f4', 'f1', 'requested');
     plan('f1', '2027-01-28', '2027-01-29', 'need');
     book('2027-01-28', 'k1', 'f1', 'f3', 'offered'); book('2027-01-28', 'k2', 'f1', 'f3', 'offered');
@@ -576,6 +658,16 @@ function demoBackend() {
     db.sitter_vouches = [{ sitter_id: 's1', family_id: 'f2', times_used: 6 }, { sitter_id: 's1', family_id: 'f3', times_used: 2 }, { sitter_id: 's2', family_id: 'f4', times_used: 10 }];
     D.range('2027-01-05', '2027-01-15').filter(d => !D.weekend(d)).forEach(date => db.sitter_availability.push({ sitter_id: 's1', date }));
     D.range('2027-01-25', '2027-02-02').filter(d => !D.weekend(d) && !DEMO_PH[d]).forEach(date => db.sitter_availability.push({ sitter_id: 's2', date }));
+    const pd = (id, host, kind, title, date, st, en, place, open, invite, extra = {}) => {
+      db.playdates.push({ id, group_id: 'g1', host_family: host, kind, title, date, start_time: st, end_time: en, place, open_to_group: open, status: 'active', note: null, max_kids: null, rsvp_by: null, gift_note: null, theme: null, birthday_kid: null, ...extra });
+      invite.forEach(f => db.playdate_invites.push({ playdate_id: id, family_id: f }));
+    };
+    pd('d1', 'f4', 'birthday', "Hine's 10th birthday", '2026-12-12', '14:00', '16:30', 'Ngata house, Pt Chev', true, [], { rsvp_by: '2026-12-08', gift_note: 'No gifts please — just bring your togs!', theme: 'Pool party', birthday_kid: 'k7', max_kids: 12, note: 'Sausage sizzle and cake.' });
+    pd('d2', 'f2', 'stay', 'Western Springs playground', '2026-12-06', '10:00', '12:00', 'Western Springs playground', false, ['f1', 'f3'], { note: 'We\'ll bring a ball and snacks.' });
+    pd('d3', 'f1', 'dropoff', 'Lego afternoon', '2026-12-13', '13:00', '16:00', 'Our place', false, ['f2', 'f3'], { max_kids: 4 });
+    const rs = (p, f, status, kids, share) => db.playdate_rsvps.push({ playdate_id: p, family_id: f, status, kid_ids: kids, share_notes: share, note: null, updated_at: new Date().toISOString() });
+    rs('d1', 'f2', 'going', ['k3', 'k4'], true); rs('d1', 'f3', 'maybe', ['k5'], false);
+    rs('d3', 'f2', 'going', ['k3'], true);
     const prov = (id, name, plan, status, tags, amin, amax, extra, locs, sess) => {
       db.providers.push({ id, name, plan, status, tags, age_min: amin, age_max: amax, country: 'NZ', paid_until: plan === 'basic' ? null : '2027-12-31', oscar: false, ...extra });
       locs.forEach(([p, venue, r]) => db.provider_locations.push({ id: uid(), provider_id: id, place_id: placeId(p), venue, radius_km: r }));
@@ -602,20 +694,21 @@ function demoBackend() {
   const effPlan = p => p.plan !== 'basic' && p.paid_until && p.paid_until >= D.today() ? p.plan : 'basic';
   return {
     demo: true,
-    get demoAs() { return as; },
-    setDemoAs(v) { as = v; store.set('co-hortdinate-demo-as', v); },
     async init() { return { id: 'demo', email: 'demo' }; },
-    async signOut() { try { localStorage.removeItem(KEY); localStorage.removeItem('co-hortdinate-demo-as'); } catch {} location.reload(); },
+    async publicSettings() { return { privacy_email: 'privacy@example.com', privacy_officer: 'The app owner' }; },
+    async signOut() { try { localStorage.removeItem(KEY); } catch {} location.reload(); },
     async getMe() {
-      if (as === 'provider') return { family: null, groups: [], providerId: myProv(), isAdmin: false, places };
       const f = db.families.find(f => f.id === ME);
-      const groups = db.group_families.filter(gf => gf.family_id === ME).map(gf => ({ ...db.groups.find(g => g.id === gf.group_id), role: gf.role }));
-      return { family: f, groups, providerId: null, isAdmin: true, places };
+      const groups = db.group_families.filter(gf => gf.family_id === ME).map(gf => ({ ...db.groups.find(g => g.id === gf.group_id), role: gf.role, show_hosting: gf.show_hosting, show_need: gf.show_need }));
+      return { family: f, groups, adults: db.family_adults.filter(a => a.family_id === ME), myUserId: 'demo', providerId: null, isAdmin: true, places,
+        settings: { privacy_email: 'privacy@example.com', privacy_officer: 'The app owner' } };
     },
+    async saveAdult(a) { Object.assign(db.family_adults.find(x => x.id === a.id), { first_name: a.first_name, phone: a.phone }); save(); },
+    async deleteFamily() { toast('Demo: this would delete your family, cancel your arrangements and sign you out. Resetting the demo instead.'); setTimeout(() => this.signOut(), 1500); },
     async updateFamily(id, patch) { Object.assign(db.families.find(f => f.id === id), patch); save(); },
     async createGroup(name, country, region) {
       const g = { id: uid(), name, invite_code: Math.random().toString(36).slice(2, 10).toUpperCase(), country, region };
-      db.groups.push(g); db.group_families.push({ group_id: g.id, family_id: ME, role: 'admin' });
+      db.groups.push(g); db.group_families.push({ group_id: g.id, family_id: ME, role: 'admin', show_hosting: true, show_need: true, joined_at: new Date().toISOString() });
       DEMO_HOLIDAYS.forEach(h => db.group_holidays.push({ id: uid(), group_id: g.id, kind: 'holiday', ...h }));
       save(); return g;
     },
@@ -623,19 +716,58 @@ function demoBackend() {
     async joinGroup(code) {
       const g = db.groups.find(g => g.invite_code === code.trim().toUpperCase());
       if (!g) throw new Error('That invite code was not found');
-      if (!db.group_families.some(x => x.group_id === g.id && x.family_id === ME)) db.group_families.push({ group_id: g.id, family_id: ME, role: 'member' });
+      if (!db.group_families.some(x => x.group_id === g.id && x.family_id === ME)) db.group_families.push({ group_id: g.id, family_id: ME, role: 'pending', show_hosting: true, show_need: true, joined_at: new Date().toISOString() });
+      email('the group admins', `Our family wants to join ${g.name}`);
       save(); return g;
     },
-    async leaveGroup(gid, fid) { db.group_families = db.group_families.filter(x => !(x.group_id === gid && x.family_id === fid)); save(); },
+    async leaveGroup(gid) { this._remove(gid, ME); },
+    async removeFamily(gid, fid) { this._remove(gid, fid); email(famName(fid), 'You\'ve been removed from the group'); },
+    _remove(gid, fid) {
+      const was = db.group_families.find(x => x.group_id === gid && x.family_id === fid);
+      db.care_bookings.filter(b => b.group_id === gid && b.date >= D.today() && ['requested', 'offered', 'confirmed'].includes(b.status) && [b.host_family, b.child_family].includes(fid))
+        .forEach(b => { b.status = 'cancelled'; email(famName(b.host_family === fid ? b.child_family : b.host_family), `${famName(fid)} cancelled ${D.short(b.date)} (left the group)`); });
+      const mySitters = db.sitters.filter(x => x.group_id === gid).map(x => x.id);
+      db.sitter_vouches = db.sitter_vouches.filter(v => !(v.family_id === fid && mySitters.includes(v.sitter_id)));
+      db.sitters.filter(x => x.group_id === gid && x.added_by === fid).forEach(x => { const o = db.sitter_vouches.find(v => v.sitter_id === x.id); if (o) x.added_by = o.family_id; else db.sitters = db.sitters.filter(y => y.id !== x.id); });
+      db.playdates.filter(p => p.group_id === gid && p.host_family === fid).forEach(p => p.status = 'cancelled');
+      db.group_families = db.group_families.filter(x => !(x.group_id === gid && x.family_id === fid));
+      if (was?.role === 'admin' && !db.group_families.some(x => x.group_id === gid && x.role === 'admin')) {
+        const nxt = db.group_families.filter(x => x.group_id === gid && x.role === 'member').sort((a, b) => a.joined_at.localeCompare(b.joined_at))[0];
+        if (nxt) { nxt.role = 'admin'; email(famName(nxt.family_id), 'You\'re now the group admin'); }
+      }
+      save();
+    },
+    async approveMember(gid, fid) { db.group_families.find(x => x.group_id === gid && x.family_id === fid).role = 'member'; save(); email(famName(fid), 'You\'re in!'); },
+    async setAdmin(gid, fid, on) {
+      const n = db.group_families.filter(x => x.group_id === gid && x.role === 'admin').length;
+      if (on && n >= 2) throw new Error('A group can have an admin and one co-admin. Remove one first.');
+      if (!on && n <= 1) throw new Error('Every group needs an admin. Make someone else admin first.');
+      db.group_families.find(x => x.group_id === gid && x.family_id === fid).role = on ? 'admin' : 'member'; save();
+    },
+    async resetCode(gid) { const g = db.groups.find(x => x.id === gid); g.invite_code = Math.random().toString(36).slice(2, 10).toUpperCase(); save(); return g.invite_code; },
+    async setVisibility(gid, hosting, need) { Object.assign(db.group_families.find(x => x.group_id === gid && x.family_id === ME), { show_hosting: hosting, show_need: need }); save(); },
+    async pendingMembers(gid) {
+      return db.group_families.filter(x => x.group_id === gid && x.role === 'pending').map(x => ({ family_id: x.family_id, name: famName(x.family_id), requested_at: x.joined_at,
+        adults: db.family_adults.filter(a => a.family_id === x.family_id).map(a => a.first_name), kids: db.kids.filter(k => k.family_id === x.family_id).length }));
+    },
     async loadGroup(gid) {
-      const mem = db.group_families.filter(x => x.group_id === gid);
-      const families = mem.map(m => ({ ...db.families.find(f => f.id === m.family_id), role: m.role }));
+      const mem = db.group_families.filter(x => x.group_id === gid && x.role !== 'pending');
+      const families = mem.map(m => ({ ...db.families.find(f => f.id === m.family_id), role: m.role, show_hosting: m.show_hosting, show_need: m.show_need }));
       const fids = new Set(families.map(f => f.id));
       const kids = db.kids.filter(k => fids.has(k.family_id));
       const kidIds = new Set(kids.map(k => k.id));
       const g = db.groups.find(x => x.id === gid);
       const visibleNote = n => db.kids.find(k => k.id === n.kid_id)?.family_id === ME ||
         db.care_bookings.some(b => b.kid_id === n.kid_id && b.host_family === ME && b.status === 'confirmed');
+      const partner = f => f === ME || db.care_bookings.some(b => b.status === 'confirmed' && b.date >= D.add(D.today(), -1) &&
+        ((b.host_family === ME && b.child_family === f) || (b.child_family === ME && b.host_family === f)));
+      const adults = db.family_adults.filter(a => fids.has(a.family_id));
+      const other = db.care_bookings.filter(b => b.group_id !== gid && b.status === 'confirmed');
+      const hostAgg = {};
+      other.filter(b => fids.has(b.host_family)).forEach(b => { const k = b.host_family + '|' + b.date + '|' + b.part; (hostAgg[k] ||= { host_family: b.host_family, date: b.date, part: b.part, n: 0 }).n++; });
+      const pds = db.playdates.filter(p => p.group_id === gid && p.status === 'active' &&
+        (p.open_to_group || p.host_family === ME || db.playdate_invites.some(i => i.playdate_id === p.id && i.family_id === ME)));
+      const pids = new Set(pds.map(p => p.id));
       return {
         holidays: db.group_holidays.filter(h => h.group_id === gid).sort((a, b) => a.start_date.localeCompare(b.start_date)),
         families, kids,
@@ -646,6 +778,10 @@ function demoBackend() {
         pubHols: DEMO_PUBLIC_HOLIDAYS.filter(([, , r]) => !r || r === g?.region).map(([date, name, region]) => ({ date, name, region, country: 'NZ' })),
         sitters: db.sitters.filter(x => x.group_id === gid),
         vouches: db.sitter_vouches, avail: db.sitter_availability, flags: db.sitter_flags,
+        adults: adults.map(({ phone, ...a }) => a),
+        contacts: adults.filter(a => partner(a.family_id) && a.phone).map(a => ({ adult_id: a.id, phone: a.phone })),
+        cross: { covered: other.filter(b => kidIds.has(b.kid_id)).map(b => ({ kid_id: b.kid_id, date: b.date, part: b.part })), hosting: Object.values(hostAgg) },
+        playdates: pds, invites: db.playdate_invites.filter(i => pids.has(i.playdate_id)), rsvps: db.playdate_rsvps.filter(r => pids.has(r.playdate_id)),
       };
     },
     async saveHolidays(gid, list) { db.group_holidays = db.group_holidays.filter(h => !(h.group_id === gid && h.kind === 'holiday')).concat(list.map(h => ({ ...h, id: uid(), group_id: gid, kind: 'holiday' }))); save(); },
@@ -672,6 +808,12 @@ function demoBackend() {
     // bookings — same rules as the database functions
     async createBookings(gid, date, part, kidIds, hostId, note) {
       if (!kidIds.length) throw new Error('Pick at least one kid');
+      const load = (h, d, p) => db.care_bookings.filter(b => b.host_family === h && b.date === d && b.status === 'confirmed' && partsOverlap(b.part, p)).length;
+      const cap = (h, d) => db.day_plans.find(x => x.family_id === h && x.date === d && x.status === 'host')?.capacity || 0;
+      if (ME !== hostId) {
+        if (!db.group_families.find(x => x.group_id === gid && x.family_id === hostId)?.show_hosting) throw new Error('That family isn\'t offering hosting in this group');
+        if (cap(hostId, date) - load(hostId, date, part) < kidIds.length) throw new Error('Sorry — that family doesn\'t have enough spots left that day');
+      }
       const byFam = {};
       for (const kid of db.kids.filter(k => kidIds.includes(k.id))) {
         if (kid.family_id === hostId) throw new Error('You can\'t host your own kids');
@@ -681,20 +823,37 @@ function demoBackend() {
         else throw new Error('You can only offer to host, or ask for your own kids');
         if (db.care_bookings.some(b => b.kid_id === kid.id && b.date === date && b.status === 'confirmed' && partsOverlap(b.part, part))) throw new Error('One of those kids is already booked for that time');
         db.care_bookings.forEach(b => { if (b.kid_id === kid.id && b.date === date && b.host_family === hostId && ['requested', 'offered'].includes(b.status)) b.status = 'cancelled'; });
-        db.care_bookings.push({ id: uid(), group_id: gid, date, part, kid_id: kid.id, child_family: kid.family_id, host_family: hostId, status: st, initiated_by: ME, note: note || null, updated_at: new Date().toISOString() });
+        const bid = uid();
+        db.care_bookings.push({ id: bid, group_id: gid, date, part, kid_id: kid.id, child_family: kid.family_id, host_family: hostId, status: st, initiated_by: ME, note: note || null, updated_at: new Date().toISOString() });
+        if (st === 'confirmed') this._settle(kid.id, date, part, bid);
         (byFam[kid.family_id] ||= { st, kids: [] }).kids.push(kid.id);
       }
+      if (ME === hostId && load(hostId, date, part) > cap(hostId, date)) { const p = db.day_plans.find(x => x.family_id === hostId && x.date === date && x.status === 'host'); if (p) p.capacity = load(hostId, date, part); }
       save();
       if (ME === hostId) Object.entries(byFam).forEach(([f, x]) => email(famName(f), x.st === 'confirmed' ? `You'll look after ${kidsTxt(x.kids)} on ${D.short(date)}` : `You offered to look after ${kidsTxt(x.kids)} — waiting for them to accept`));
       else email(famName(hostId), `${famName(ME)} asked if you can look after ${kidsTxt(kidIds)} on ${D.short(date)}`);
       return kidIds.length;
     },
-    async respondBookings(ids, accept) {
+    _settle(kidId, date, part, keep) {
+      db.care_bookings.filter(b => b.kid_id === kidId && b.date === date && b.id !== keep && ['requested', 'offered'].includes(b.status) && partsOverlap(b.part, part))
+        .forEach(b => { b.status = 'cancelled'; email(famName(b.host_family), `No longer needed: ${db.kids.find(k => k.id === kidId)?.first_name} is sorted for ${D.short(date)}`); });
+    },
+    async respondBookings(ids, accept, force) {
+      const list = db.care_bookings.filter(b => ids.includes(b.id));
+      const req = list.filter(b => b.status === 'requested' && b.host_family === ME);
+      if (accept && req.length) {
+        const b0 = req[0];
+        const load = db.care_bookings.filter(b => b.host_family === ME && b.date === b0.date && b.status === 'confirmed' && partsOverlap(b.part, b0.part)).length + req.length;
+        const plan = db.day_plans.find(x => x.family_id === ME && x.date === b0.date && x.status === 'host');
+        if (load > (plan?.capacity || 0) && !force) throw new Error('OVER_CAPACITY:' + load);
+        if (plan && load > plan.capacity) plan.capacity = load;
+      }
       let other = null, d = null;
-      for (const b of db.care_bookings.filter(b => ids.includes(b.id))) {
+      for (const b of list) {
         if (!((b.status === 'requested' && b.host_family === ME) || (b.status === 'offered' && b.child_family === ME))) throw new Error('Nothing to respond to');
         other = b.status === 'requested' ? b.child_family : b.host_family; d = b.date;
         b.status = accept ? 'confirmed' : 'declined'; b.updated_at = new Date().toISOString();
+        if (accept) this._settle(b.kid_id, b.date, b.part, b.id);
       }
       save(); if (other) email(famName(other), accept ? `Confirmed for ${D.short(d)}` : `Can't make ${D.short(d)} this time`);
     },
@@ -708,6 +867,39 @@ function demoBackend() {
     async urgentCall(gid, date, part, msg) {
       const n = db.group_families.filter(x => x.group_id === gid && x.family_id !== ME).length;
       email(`${n} families`, `🚨 ${famName(ME)} urgently needs help on ${D.short(date)}`); return n;
+    },
+    // playdates
+    async createPlaydate(x) {
+      if (!x.open_to_group && !(x.families || []).length) throw new Error('Invite at least one family, or open it to the whole group');
+      const id = uid();
+      db.playdates.push({ id, group_id: x.group_id, host_family: ME, kind: x.kind, title: x.title, date: x.date, start_time: x.start_time || null, end_time: x.end_time || null,
+        place: x.place || null, note: x.note || null, open_to_group: x.open_to_group, max_kids: x.max_kids || null, rsvp_by: x.rsvp_by || null, gift_note: x.gift_note || null,
+        theme: x.theme || null, birthday_kid: x.birthday_kid || null, status: 'active' });
+      (x.families || []).forEach(f => db.playdate_invites.push({ playdate_id: id, family_id: f }));
+      save(); email(x.open_to_group ? 'everyone in the group' : `${x.families.length} famil${x.families.length === 1 ? 'y' : 'ies'}`, `Invite: ${x.title}`); return id;
+    },
+    async cancelPlaydate(id) { db.playdates.find(p => p.id === id).status = 'cancelled'; save(); email('families who replied', 'Cancelled'); },
+    async rsvp(id, status, kids, share, note) {
+      const p = db.playdates.find(x => x.id === id);
+      if (status === 'going' && !kids.length) throw new Error('Pick which kids are coming');
+      if (status === 'going' && p.max_kids) {
+        const taken = db.playdate_rsvps.filter(r => r.playdate_id === id && r.status === 'going' && r.family_id !== ME).reduce((a, r) => a + r.kid_ids.length, 0);
+        if (taken + kids.length > p.max_kids) throw new Error(`Sorry — that's more kids than the host can fit (${Math.max(p.max_kids - taken, 0)} spots left)`);
+      }
+      db.playdate_rsvps = db.playdate_rsvps.filter(r => !(r.playdate_id === id && r.family_id === ME));
+      db.playdate_rsvps.push({ playdate_id: id, family_id: ME, status, kid_ids: status === 'no' ? [] : kids, share_notes: share, note: note || null, updated_at: new Date().toISOString() });
+      save(); email(famName(p.host_family), `Our family replied ${status} to ${p.title}`);
+    },
+    async playdateDetails(id) {
+      const p = db.playdates.find(x => x.id === id), host = p.host_family === ME;
+      const going = db.playdate_rsvps.some(r => r.playdate_id === id && r.family_id === ME && r.status === 'going');
+      return {
+        rsvps: db.playdate_rsvps.filter(r => r.playdate_id === id).map(r => ({ ...r, family: famName(r.family_id),
+          kids: db.kids.filter(k => r.kid_ids.includes(k.id)).map(k => { const n = db.kid_notes.find(x => x.kid_id === k.id);
+            return { id: k.id, first_name: k.first_name, birth_month: k.birth_month, notes: host && r.share_notes && r.status === 'going' && n ? { allergies: n.allergies, ...(p.kind === 'dropoff' ? { needs: n.needs, pickup: n.pickup, emergency: n.emergency } : {}) } : null }; }) })),
+        invited: db.playdate_invites.filter(i => i.playdate_id === id).map(i => i.family_id),
+        phones: host || going ? db.family_adults.filter(a => a.family_id === p.host_family && a.phone).map(a => ({ name: a.first_name, phone: a.phone })) : null,
+      };
     },
     // sitters
     async saveSitter(x) {
@@ -749,7 +941,7 @@ function demoBackend() {
     },
     async logProvider(id, kind) { db.provider_events.push({ provider_id: id, kind, family_id: ME, created_at: new Date().toISOString() }); save(); },
     // provider portal
-    async registerProvider(name) { throw new Error('In the demo, use "Preview the provider portal" on the Group tab.'); },
+    async registerProvider(name) { throw new Error('Providers sign up in the live app, not the demo.'); },
     async loadProvider(id) {
       const provider = db.providers.find(p => p.id === id);
       const evs = db.provider_events.filter(e => e.provider_id === id);
@@ -773,6 +965,10 @@ function demoBackend() {
       save(); toast(`💳 Demo payment done — ${plan} until ${D.full(p.paid_until)}`);
     },
     // app admin
+    async adminFindSitters(q) { return db.sitters.filter(x => (x.name + ' ' + (x.phone || '')).toLowerCase().includes(q.toLowerCase())).map(x => ({ id: x.id, name: x.name, phone: x.phone, group: db.groups.find(g => g.id === x.group_id)?.name, hidden: x.hidden })); },
+    async adminDeleteSitter(id) { await this.deleteSitter(id); },
+    async adminBackups() { return [0, 1, 2].map(i => ({ day: D.add(D.today(), -i), created_at: new Date().toISOString(), size: JSON.stringify(db).length })); },
+    async adminBackupDownload() { return { taken_at: new Date().toISOString(), tables: db }; },
     async adminProviders() {
       return db.providers.map(p => ({ ...p, effective_plan: effPlan(p),
         locations: db.provider_locations.filter(l => l.provider_id === p.id).map(l => `${places.find(x => x.id === l.place_id)?.name} (${l.radius_km} km)`) }))
@@ -795,28 +991,54 @@ const S = {
   periodId: null, tab: store.get('hh-tab', 'cal'), showWeekends: store.get('hh-weekends', false),
   openDay: null, form: null, editKid: null, notesFor: null, editSitter: null, availFor: null, addingSitter: false,
   prefill: null, sentTo: null, error: '', busy: false, viewed: new Set(), dismissed: new Set(store.get('hh-dismissed', [])),
-  adminEdit: null, regionPick: null,
+  adminEdit: null, regionPick: null, adults: [], settings: {}, pending: [], pdOpen: null, pdDetails: {}, pdForm: null, sitterSearch: null, backups: null, showPrivacy: false,
 };
 const $app = document.getElementById('app'), $hdr = document.getElementById('hdr'), $nav = document.getElementById('nav');
 
 function indexGroup(raw) {
   const g = { ...raw, planMap: {}, progMap: {}, famById: {}, ph: {} };
   raw.families.forEach(f => g.famById[f.id] = f);
-  raw.plans.forEach(p => g.planMap[p.family_id + '|' + p.date] = { part: 'full', ...p });
+  const me = S.family?.id;
+  // per-group switches: a family can hide its hosting offers or need-care days from this group
+  raw.plans.forEach(p => {
+    const f = g.famById[p.family_id];
+    if (f && p.family_id !== me && ((p.status === 'host' && f.show_hosting === false) || (p.status === 'need' && f.show_need === false))) return;
+    g.planMap[p.family_id + '|' + p.date] = { part: 'full', host_adults: [], ...p };
+  });
   raw.progs.forEach(p => g.progMap[p.kid_id + '|' + p.date] = p);
   const group = S.groups.find(x => x.id === S.groupId);
   (raw.pubHols || []).filter(h => !h.region || h.region === group?.region).forEach(h => g.ph[h.date] = h.name);
-  g.bookings = raw.bookings || [];
+  // arrangements made in other groups: kids show as "sorted elsewhere", hosts' spots are used up
+  const covered = (raw.cross?.covered || []).map((c, i) => ({ id: 'x' + i, kid_id: c.kid_id, date: c.date, part: c.part, status: 'confirmed', host_family: null, child_family: null, elsewhere: true }));
+  g.bookings = (raw.bookings || []).concat(covered);
+  g.extLoad = {};
+  (raw.cross?.hosting || []).forEach(h => (g.extLoad[h.host_family + '|' + h.date] ||= []).push(h));
   g.notes = Object.fromEntries((raw.notes || []).map(n => [n.kid_id, n]));
   g.sitters = raw.sitters || []; g.vouches = raw.vouches || []; g.flags = raw.flags || [];
   g.availSet = new Set((raw.avail || []).map(a => a.sitter_id + '|' + a.date));
   g.kidById = Object.fromEntries(raw.kids.map(k => [k.id, k]));
+  g.adults = raw.adults || [];
+  g.adultById = Object.fromEntries(g.adults.map(a => [a.id, a]));
+  g.phones = Object.fromEntries((raw.contacts || []).filter(c => c.phone).map(c => [c.adult_id, c.phone]));
+  g.playdates = raw.playdates || []; g.invites = raw.invites || []; g.rsvps = raw.rsvps || [];
   return g;
+}
+// "Patels (Priya home)"
+function hostLabel(fid, date) {
+  const f = S.g.famById[fid]; if (!f) return '';
+  const p = S.g.planMap[fid + '|' + date];
+  const names = (p?.host_adults || []).map(id => S.g.adultById[id]?.first_name).filter(Boolean);
+  return esc(f.name) + (names.length ? ` <small>(${esc(listNames(names))} home)</small>` : '');
+}
+// phone numbers you're allowed to see for a family (only after a confirmed arrangement)
+function phonesOf(fid) {
+  return S.g.adults.filter(a => a.family_id === fid && S.g.phones[a.id]).map(a => `<a href="tel:${esc(S.g.phones[a.id].replace(/[^\d+]/g, ''))}">📞 ${esc(a.first_name)} ${esc(S.g.phones[a.id])}</a>`).join(' · ');
 }
 const ph = d => S.g?.ph[d];
 async function reloadGroup() {
   if (!S.groupId) { S.g = null; return; }
   const group = S.groups.find(x => x.id === S.groupId);
+  if (group?.role === 'pending') { S.g = null; return; }
   S.g = indexGroup(await API.loadGroup(S.groupId, group?.country));
   const today = D.today();
   if (!S.g.holidays.some(h => h.id === S.periodId)) {
@@ -825,6 +1047,7 @@ async function reloadGroup() {
     S.periodId = next?.id || null;
   }
   S.near = S.family?.place_id ? await API.nearMe() : [];
+  S.pending = group?.role === 'admin' ? await API.pendingMembers(S.groupId) : [];
 }
 async function boot() {
   try {
@@ -835,12 +1058,14 @@ async function boot() {
         API = supaBackend(createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY));
       } else API = demoBackend();
       S.user = await API.init();
+      S.settings = await API.publicSettings();
       const q = new URLSearchParams(location.search);
       if (q.get('paid') === '1') { toast('💳 Payment received — your listing will upgrade within a minute.'); history.replaceState(null, '', location.pathname); }
     }
     if (S.user) {
       const me = await API.getMe();
       S.family = me.family; S.groups = me.groups; S.providerId = me.providerId; S.isAdmin = me.isAdmin; S.places = me.places || [];
+      S.adults = me.adults || []; S.myUserId = me.myUserId; S.settings = me.settings || {};
       if (S.providerId && !S.family) { S.pv = await API.loadProvider(S.providerId); }
       else {
         if (!S.groups.some(g => g.id === S.groupId)) S.groupId = S.groups[0]?.id || null;
@@ -878,7 +1103,9 @@ function daySummary(date) {
       }
     } else if (p.status === 'host') {
       const rem = {};
-      for (const sl of partSlots(p.part)) rem[sl] = Math.max(0, (p.capacity || 0) - conf.filter(b => b.host_family === f.id && partsOverlap(b.part, sl)).length);
+      const ext = g.extLoad[f.id + '|' + date] || [];
+      for (const sl of partSlots(p.part)) rem[sl] = Math.max(0, (p.capacity || 0) - conf.filter(b => b.host_family === f.id && partsOverlap(b.part, sl)).length
+        - ext.filter(x => partsOverlap(x.part, sl)).reduce((a, x) => a + x.n, 0));
       hosts.push({ f, p, rem, left: Math.max(...Object.values(rem)) });
     } else if (p.status === 'home') home.push(f);
     else away.push(f);
@@ -891,21 +1118,22 @@ function daySummary(date) {
   const spots = Math.max(am.spots, pm.spots);
   const sparePart = (am.spots - am.need) === (pm.spots - pm.need) ? '' : (am.spots - am.need) > (pm.spots - pm.need) ? 'am' : 'pm';
   const byHost = {};
-  conf.forEach(b => (byHost[b.host_family] ||= []).push(b));
+  conf.filter(b => !b.elsewhere).forEach(b => (byHost[b.host_family] ||= []).push(b));
+  const elsewhere = conf.filter(b => b.elsewhere);
   const pending = activeBookings(date).filter(b => b.status !== 'confirmed');
-  return { need, hosts, home, away, unset, progs, spots, spare, sparePart, short, am, pm, byHost, pending };
+  return { need, hosts, home, away, unset, progs, spots, spare, sparePart, short, am, pm, byHost, pending, elsewhere };
 }
 // Items waiting on *me* to respond, and my own pending asks/offers
 function myInbox() {
   const me = S.family.id, today = D.today();
-  const act = S.g.bookings.filter(b => b.date >= today && ((b.status === 'requested' && b.host_family === me) || (b.status === 'offered' && b.child_family === me)));
+  const act = S.g.bookings.filter(b => !b.elsewhere && b.date >= today && ((b.status === 'requested' && b.host_family === me) || (b.status === 'offered' && b.child_family === me)));
   const groups = {};
   act.forEach(b => { const k = [b.status, b.date, b.part, b.status === 'requested' ? b.child_family : b.host_family].join('|'); (groups[k] ||= []).push(b); });
   return Object.values(groups).sort((a, b) => a[0].date.localeCompare(b[0].date));
 }
 function myBookings() {
   const me = S.family.id, today = D.today();
-  const list = S.g.bookings.filter(b => b.date >= today && (b.host_family === me || b.child_family === me) && ['requested', 'offered', 'confirmed'].includes(b.status));
+  const list = S.g.bookings.filter(b => !b.elsewhere && b.date >= today && (b.host_family === me || b.child_family === me) && ['requested', 'offered', 'confirmed'].includes(b.status));
   const groups = {};
   list.forEach(b => { const k = [b.status, b.date, b.part, b.host_family, b.child_family].join('|'); (groups[k] ||= []).push(b); });
   return Object.values(groups).sort((a, b) => a[0].date.localeCompare(b[0].date));
@@ -950,25 +1178,39 @@ function rankedNear() {
 }
 const runsOn = (pr, d) => (pr.sessions || []).some(s => d >= s.start && d <= s.end);
 
+const myGroup = () => S.groups.find(g => g.id === S.groupId);
+// arrangements of mine on a day that a plan change would break
+function clashes(date, next) {
+  const me = S.family.id;
+  return S.g.bookings.filter(b => !b.elsewhere && b.date === date && ['requested', 'offered', 'confirmed'].includes(b.status) && (b.host_family === me || b.child_family === me))
+    .filter(b => {
+      if (b.host_family === me) return next.status !== 'host' || !partsOverlap(b.part, next.part || 'full') || false;
+      return next.status !== 'need' || !partsOverlap(b.part, next.part || 'full');
+    });
+}
+
 // ───────────── Rendering: shell ─────────────
 function render() {
-  const plain = t => { $nav.hidden = true; $hdr.innerHTML = `<h1>${t || 'Co-hortdinate'}</h1>`; };
+  const plain = t => { $nav.hidden = true; $hdr.innerHTML = `<h1>${t || 'Cohortdinate'}</h1>`; };
+  if (S.showPrivacy) { plain(); $app.innerHTML = viewPrivacy(); return; }
   if (!S.user) { plain(); $app.innerHTML = errBox() + viewLogin(); return; }
-  if (S.pv) { plain('Co-hortdinate <small class="hsub">for providers</small>'); $app.innerHTML = demoBanner() + errBox() + viewProvider(); return; }
+  if (S.pv) { plain('Cohortdinate <small class="hsub">for providers</small>'); $app.innerHTML = demoBanner() + errBox() + viewProvider(); return; }
   if (!S.family) { plain(); $app.innerHTML = demoBanner() + errBox() + viewOnboardFamily(); return; }
+  if (myGroup()?.role === 'pending') { plain(); $app.innerHTML = demoBanner() + errBox() + viewPendingGroup(); return; }
   if (!S.groupId || !S.g) { plain(); $app.innerHTML = demoBanner() + errBox() + viewOnboardGroup(); return; }
 
   const hol = S.g.holidays.filter(h => h.kind !== 'oneoff'), one = S.g.holidays.filter(h => h.kind === 'oneoff' && h.end_date >= D.add(D.today(), -7));
   const opt = h => `<option value="${h.id}" ${h.id === S.periodId ? 'selected' : ''}>${esc(h.name)}${h.kind === 'oneoff' ? ' · ' + D.short(h.start_date) : ''}</option>`;
-  $hdr.innerHTML = `<h1>Co-hortdinate</h1>
+  $hdr.innerHTML = `<h1>Cohortdinate</h1>
     <div class="row">
       ${S.groups.length > 1 ? `<select data-c="group">${S.groups.map(g => `<option value="${g.id}" ${g.id === S.groupId ? 'selected' : ''}>${esc(g.name)}</option>`).join('')}</select>` : ''}
       <select data-c="period"><optgroup label="School holidays">${hol.map(opt).join('')}</optgroup>${one.length ? `<optgroup label="One-off days">${one.map(opt).join('')}</optgroup>` : ''}</select>
     </div>`;
-  const tabs = [['cal', '📅', 'Calendar'], ['plan', '✏️', 'My plan'], ['progs', '🎨', 'Programmes'], ['sitters', '🧑‍🍼', 'Sitters'], ['family', '👨‍👩‍👧', 'Family'], ['group', '👥', 'Group']];
+  const tabs = [['cal', '📅', 'Calendar'], ['plan', '✏️', 'My plan'], ['play', '🎈', 'Playdates'], ['progs', '🎨', 'Programmes'], ['sitters', '🧑‍🍼', 'Sitters'], ['family', '👨‍👩‍👧', 'Family'], ['group', '👥', 'Group']];
   $nav.hidden = false;
-  $nav.innerHTML = tabs.map(([k, i, l]) => `<button data-a="tab" data-v="${k}" class="${S.tab === k ? 'on' : ''}"><span>${i}</span>${l}</button>`).join('');
-  const views = { cal: viewCalendar, plan: viewPlan, progs: viewProgrammes, sitters: viewSitters, family: viewFamily, group: viewGroup, admin: viewAdmin };
+  const pendingCount = isAdmin() ? (S.pending || []).length : 0;
+  $nav.innerHTML = tabs.map(([k, i, l]) => k === 'group' && pendingCount ? `<button data-a="tab" data-v="${k}" class="${S.tab === k ? 'on' : ''}"><span>${i}<i class="badge">${pendingCount}</i></span>${l}</button>` : `<button data-a="tab" data-v="${k}" class="${S.tab === k ? 'on' : ''}"><span>${i}</span>${l}</button>`).join('');
+  const views = { cal: viewCalendar, plan: viewPlan, play: viewPlaydates, progs: viewProgrammes, sitters: viewSitters, family: viewFamily, group: viewGroup, admin: viewAdmin };
   const needsPeriod = ['cal', 'plan'].includes(S.tab) && !period();
   $app.innerHTML = demoBanner() + errBox() + (needsPeriod ? `<div class="card">No holiday dates set up yet. ${isAdmin() ? 'Add them under Group.' : 'Ask your group admin to add them.'}</div>` : (views[S.tab] || viewCalendar)());
   if (S.prefill && S.tab === 'progs') applyPrefill();
@@ -992,20 +1234,35 @@ function viewLogin() {
     <form data-f="signin"><label>Email</label><div class="flex"><input class="grow" name="email" type="email" required value="${esc(S.sentTo || '')}" placeholder="you@example.com"><button ${S.busy ? 'disabled' : ''}>Send</button></div></form>
     ${S.sentTo ? `<form data-f="verify"><label>Code from the email</label><div class="flex"><input class="grow" name="code" inputmode="numeric" autocomplete="one-time-code" placeholder="123456"><button>Sign in</button></div>
       <p class="muted">Or just tap the link in the email.</p></form>` : ''}
+    <p class="muted" style="margin-top:12px"><button class="link inl" data-a="privacy">Privacy statement</button></p>
   </div>`;
 }
+const privacyTick = () => `<label class="toggle" style="margin-top:10px;color:var(--ink)"><input type="checkbox" name="privacy" required> I've read the <button type="button" class="link inl" data-a="privacy">privacy statement</button></label>`;
+const adultFields = () => `<div class="grid2"><div><label>Your first name</label><input name="adult" required maxlength="40" placeholder="e.g. Priya"></div>
+  <div><label>Your mobile (optional)</label><input name="phone" type="tel" maxlength="30" placeholder="Only shared once an arrangement is confirmed"></div></div>`;
 function viewOnboardFamily() {
   return `<div class="card"><h2>Set up your family</h2>
-    <form data-f="createFamily"><label>Family name (what your friends will see)</label><div class="flex"><input class="grow" name="name" required maxlength="60" placeholder="e.g. The Patels"><button>Create</button></div></form>
+    <form data-f="createFamily"><label>Family name (what your friends will see)</label><input name="name" required maxlength="60" placeholder="e.g. The Patels">
+      ${adultFields()}${privacyTick()}<button style="margin-top:8px">Create</button></form>
   </div>
   <div class="card"><h2>…or join your partner's family</h2>
     <p class="muted">If your partner has already set up your family, enter the family code from their Family tab.</p>
-    <form data-f="joinFamily"><div class="flex"><input class="grow" name="code" required placeholder="Family code"><button>Join</button></div></form>
+    <form data-f="joinFamily"><label>Family code</label><input name="code" required placeholder="Family code">
+      ${adultFields()}${privacyTick()}<button style="margin-top:8px">Join</button></form>
   </div>
   <div class="card prog"><h2>Run a holiday programme?</h2>
     <p class="muted">List your programme so families nearby can find it while they plan the holidays. Use a separate email from any family account.</p>
-    <form data-f="registerProvider"><div class="flex"><input class="grow" name="name" required maxlength="80" placeholder="Programme or business name"><button>Get started</button></div></form>
+    <form data-f="registerProvider"><label>Programme or business name</label><input name="name" required maxlength="80">${privacyTick()}<button style="margin-top:8px">Get started</button></form>
   </div>`;
+}
+function viewPendingGroup() {
+  const g = myGroup(), others = S.groups.filter(x => x.id !== g.id && x.role !== 'pending');
+  return `<div class="card spare"><h2>⏳ Waiting for approval</h2>
+    <p>You've asked to join <b>${esc(g.name)}</b>. A group admin needs to approve you before you can see the group's calendar — they've been sent an email.</p>
+    <p class="muted">Know the admin? A quick message to them speeds things up.</p></div>
+  ${others.length ? `<div class="card"><h2>Your other groups</h2>${others.map(o => `<div class="kidrow"><div class="grow">${esc(o.name)}</div><button class="link" data-a="switchGroup" data-v="${o.id}">Open</button></div>`).join('')}</div>` : ''}
+  <div class="card"><h2>Join another group</h2><form data-f="joinGroup"><div class="flex"><input class="grow" name="code" required placeholder="Invite code"><button>Join</button></div></form></div>
+  <div class="card"><button class="link" data-a="signOut">Sign out</button></div>`;
 }
 function viewOnboardGroup() {
   return `<div class="card"><h2>Join your friends' group</h2>
@@ -1134,16 +1391,20 @@ function dayDetail(d, s) {
 
     ${s.hosts.length ? `<h4>Hosting</h4>${s.hosts.map(h => {
       const form = S.form && S.form.date === d && S.form.type === 'ask' && S.form.host === h.f.id ? askForm(d, h, myOpen) : '';
-      return `<div class="needrow"><div class="flex" style="flex-wrap:wrap"><span class="chip"><b>${fam(h.f)}</b> — ${h.left} of ${h.p.capacity} spot${h.p.capacity === 1 ? '' : 's'} left${partSuffix(h.p.part)}${h.p.note ? ` <small>· ${esc(h.p.note)}</small>` : ''}</span><span class="grow"></span>
+      return `<div class="needrow"><div class="flex" style="flex-wrap:wrap"><span class="chip"><b>${hostLabel(h.f.id, d)}</b> — ${h.left} of ${h.p.capacity} spot${h.p.capacity === 1 ? '' : 's'} left${partSuffix(h.p.part)}${h.p.note ? ` <small>· ${esc(h.p.note)}</small>` : ''}</span><span class="grow"></span>
         ${future && myOpen.length && h.f.id !== me && h.left > 0 && !form ? (s.pending.some(b => b.host_family === h.f.id && b.child_family === me && b.status === 'requested') ? '<span class="pill ph">⏳ Asked</span>' : `<button class="small ghost" data-a="openForm" data-t="ask" data-d="${d}" data-v="${h.f.id}">Ask ${fam(h.f)}</button>`) : ''}</div>${form}</div>`;
     }).join('')}` : ''}
 
     ${Object.keys(s.byHost).length ? `<h4>Sorted ✓</h4>${Object.entries(s.byHost).map(([hid, bs]) => {
       const iHost = hid === me, ids = bs.map(b => b.id);
-      return `<div class="needrow"><div class="flex" style="flex-wrap:wrap"><span class="chip">🏠 <b>${esc(S.g.famById[hid]?.name)}</b> has ${bs.map(b => `${kidName(S.g.kidById[b.kid_id] || { first_name: '?' }, d)}${b.part !== 'full' ? ` <small>${b.part.toUpperCase()}</small>` : ''}`).join(', ')}</span>
+      const mine = iHost || bs.some(b => b.child_family === me);
+      return `<div class="needrow"><div class="flex" style="flex-wrap:wrap"><span class="chip">🏠 <b>${hostLabel(hid, d)}</b> has ${bs.map(b => `${kidName(S.g.kidById[b.kid_id] || { first_name: '?' }, d)}${b.part !== 'full' ? ` <small>${b.part.toUpperCase()}</small>` : ''}`).join(', ')}</span>
         ${iHost ? `<button class="link" data-a="showNotes" data-v="${ids.join(',')}">📋 Care notes</button>` : ''}</div>
+        ${mine ? `<div class="phones">${iHost ? [...new Set(bs.map(b => b.child_family))].map(phonesOf).join(' · ') : phonesOf(hid)}</div>` : ''}
         ${iHost && S.notesFor === ids.join(',') ? notesPanel(bs.map(b => b.kid_id)) : ''}</div>`;
     }).join('')}` : ''}
+    ${s.elsewhere.length ? `<p class="muted">✓ Sorted in another group: ${listNames([...new Set(s.elsewhere.map(b => esc(S.g.kidById[b.kid_id]?.first_name || '')))])}</p>` : ''}
+    ${S.g.playdates.filter(p => p.date === d).length ? `<h4>Playdates</h4><div class="chips">${S.g.playdates.filter(p => p.date === d).map(p => `<span class="chip">${PD_KINDS[p.kind][0]} <b>${esc(p.title)}</b>${p.start_time ? ` <small>· ${fmtTime(p.start_time)}</small>` : ''}</span>`).join('')}</div><button class="link" data-a="tab" data-v="play" style="padding-left:0">See playdates →</button>` : ''}
     ${s.pending.length ? `<p class="muted">⏳ Waiting to hear back: ${s.pending.map(b => `${esc(S.g.famById[b.status === 'requested' ? b.host_family : b.child_family]?.name)} (${esc(S.g.kidById[b.kid_id]?.first_name)})`).join(', ')}</p>` : ''}
 
     ${Object.keys(byProg).length ? `<h4>At programmes</h4>${Object.entries(byProg).map(([p, xs]) => `<div style="margin-bottom:4px"><span class="pill prog">${esc(p)}</span> ${xs.map(x => `<span class="chip">${kidName(x.k, d)} <small>· ${fam(x.f)}</small></span>`).join(' ')}</div>`).join('')}` : ''}
@@ -1190,8 +1451,9 @@ function bookingsCard() {
     ${list.map(bs => { const b = bs[0], ids = bs.map(x => x.id).join(','), kids = listNames(bs.map(x => esc(S.g.kidById[x.kid_id]?.first_name || '')));
       const iHost = b.host_family === me;
       const status = b.status === 'confirmed' ? '<span class="pill host">Confirmed</span>' : (b.status === 'requested' && !iHost) || (b.status === 'offered' && iHost) ? '<span class="pill ph">Waiting</span>' : '<span class="pill need">Needs your answer</span>';
-      return `<div class="kidrow"><div class="grow"><b>${D.short(b.date)}</b>${partSuffix(b.part)} · ${iHost ? `you're hosting <b>${kids}</b> (${fam(b.child_family)})` : `<b>${kids}</b> → ${fam(b.host_family)}`}
+      return `<div class="kidrow"><div class="grow"><b>${D.short(b.date)}</b>${partSuffix(b.part)} · ${iHost ? `you're hosting <b>${kids}</b> (${fam(b.child_family)})` : `<b>${kids}</b> → ${hostLabel(b.host_family, b.date)}`}
         <div>${status}${iHost && b.status === 'confirmed' ? ` <button class="link" data-a="showNotes" data-v="${ids}">📋 Care notes</button>` : ''}</div>
+        ${b.status === 'confirmed' ? `<div class="phones">${phonesOf(iHost ? b.child_family : b.host_family) || '<span class="muted">No phone number added</span>'}</div>` : ''}
         ${iHost && S.notesFor === ids ? notesPanel(bs.map(x => x.kid_id)) : ''}</div>
         <button class="danger" data-a="cancelBooking" data-v="${ids}">Cancel</button></div>`; }).join('')}
   </div>`;
@@ -1220,6 +1482,7 @@ function viewPlan() {
       ${pl ? `<button class="x" data-a="clearStatus" data-d="${d}" title="Clear">✕</button>` : ''}</div>
     </div>
     ${pl && ['need', 'host'].includes(pl.status) ? `<div class="partrow">${Object.entries(PARTS).map(([k, v]) => `<button class="${pl.part === k ? 'on' : ''}" data-a="setPart" data-d="${d}" data-v="${k}">${v}</button>`).join('')}</div>` : ''}
+    ${pl?.status === 'host' && S.adults.length > 1 ? `<div class="partrow">${S.adults.map(a => `<button class="${(pl.host_adults || []).includes(a.id) ? 'on' : ''}" data-a="toggleHomeAdult" data-d="${d}" data-v="${a.id}">${esc(a.first_name)}</button>`).join('')}<span class="muted" style="font-size:12px;align-self:center">${(pl.host_adults || []).length ? 'home' : '← who\'s home?'}</span></div>` : ''}
     ${pl?.status === 'host' ? `<div class="hostrow"><span class="muted">Extra kids:</span><div class="stepper"><button data-a="cap" data-d="${d}" data-v="-1">−</button><b>${pl.capacity}</b><button data-a="cap" data-d="${d}" data-v="1">+</button></div>
       <input class="grow" data-c="note" data-d="${d}" value="${esc(pl.note || '')}" maxlength="140" placeholder="Note, e.g. till 3pm, beach trip"></div>` : ''}
     ${kp.length || conf.length ? `<div class="chips" style="margin-top:6px">${kp.map(([k, x]) => `<span class="pill prog">${esc(k.first_name)} @ ${esc(x.programme)}</span>`).join('')}${conf.map(b => `<span class="pill host">${b.host_family === fid ? `Hosting ${esc(S.g.kidById[b.kid_id]?.first_name)}` : `${esc(S.g.kidById[b.kid_id]?.first_name)} → ${esc(S.g.famById[b.host_family]?.name)}`}${partSuffix(b.part)}</span>`).join('')}</div>` : ''}
@@ -1255,7 +1518,7 @@ function listingCard(pr, gapCount) {
       ${paid && pr.price_text ? `<p><b>${esc(pr.price_text)}</b></p>` : ''}
       ${pr.gapDays.length ? `<p class="muted">Your open days it runs: ${runs(pr.gapDays).map(runLabel).join(', ')}</p>` : ''}
       ${paid && sess.length ? `<p class="muted">Running: ${sess.map(s => `${s.start === s.end ? D.short(s.start) : D.short(s.start) + ' – ' + D.short(s.end)}${s.note ? ' (' + esc(s.note) + ')' : ''}`).join(', ')}</p>` : ''}
-      ${paid && pr.offer_text ? `<p class="offer">🎁 Co-hortdinate offer: <b>${esc(pr.offer_text)}</b></p>` : ''}
+      ${paid && pr.offer_text ? `<p class="offer">🎁 Cohortdinate offer: <b>${esc(pr.offer_text)}</b></p>` : ''}
       <div class="flex" style="flex-wrap:wrap;margin-top:8px">
         ${pr.booking_url ? `<a class="btn" href="${esc(withRef(pr.booking_url))}" target="_blank" rel="noopener" data-a="clickProvider" data-v="${pr.id}">Book on their website ↗</a>` : ''}
         ${paid && pr.phone ? `<a class="btn ghost" href="tel:${esc(pr.phone.replace(/[^\d+]/g, ''))}">📞 ${esc(pr.phone)}</a>` : ''}
@@ -1288,7 +1551,7 @@ function viewProgrammes() {
       <p class="muted nearnote">${note}</p>` +
       (shown.length ? shown.map(pr => listingCard(pr, gaps.length)).join('') :
         list.length ? (planned && gaps.length ? `<div class="card"><p>None of the ${list.length} programme${list.length > 1 ? 's' : ''} near you run on those days.</p></div>` : '')
-        : `<div class="card"><p>No holiday programmes are listed near you yet.</p><p class="muted">Know a great one? Tell them about Co-hortdinate — listing is free.</p></div>`) +
+        : `<div class="card"><p>No holiday programmes are listed near you yet.</p><p class="muted">Know a great one? Tell them about Cohortdinate — listing is free.</p></div>`) +
       (planned && list.length > fits.length ? `<button class="ghost showall" data-a="toggleNear">${S.showAllNear ? `Only show ones for my open days` : `Show all ${list.length} nearby`}</button>` : '');
   }
   // Friends going (this holiday)
@@ -1351,13 +1614,15 @@ function applyPrefill() {
 function sittersOn(d) { return S.g.sitters.filter(x => !x.hidden && S.g.availSet.has(x.id + '|' + d)); }
 function viewSitters() {
   const g = S.g, me = S.family.id, admin = isAdmin(), p = period();
-  if (g.sittersMissing) return `<div class="card"><h2>Sitters</h2><p>Sitters isn't switched on for this app yet. Whoever set up Co-hortdinate needs to run <b>sitters.sql</b> once in Supabase → SQL Editor.</p></div>`;
+  if (g.sittersMissing) return `<div class="card"><h2>Sitters</h2><p>Sitters isn't switched on for this app yet. Whoever set up Cohortdinate needs to run <b>sitters.sql</b> once in Supabase → SQL Editor.</p></div>`;
+  if (g.sittersError) return `<div class="card"><h2>Sitters</h2><p>Couldn't load the sitters just now — usually a brief connection hiccup.</p><button data-a="retry">Try again</button></div>`;
   const visible = g.sitters.filter(x => !x.hidden);
   const hidden = g.sitters.filter(x => x.hidden && (admin || x.added_by === me));
   const intro = `<div class="card sitters-intro"><h2>Sitters</h2>
     <p class="muted">Babysitters and carers that families in <b>${esc(S.groups.find(x => x.id === S.groupId)?.name)}</b> have used themselves and recommend. Only families in this group can see them, and sitters can't sign up on their own.</p>
-    <p class="muted" style="font-size:12px">Co-hortdinate doesn't vet, employ or pay sitters. You contact and book them directly, and you're responsible for your own arrangements — check references and ask to see a first aid certificate or criminal record check if that matters to you.</p>
+    <p class="muted" style="font-size:12px">Cohortdinate doesn't vet, employ or pay sitters. You contact and book them directly, and you're responsible for your own arrangements — check references and ask to see a first aid certificate or criminal record check if that matters to you.</p>
     ${S.addingSitter || S.editSitter ? '' : '<button data-a="addSitter">+ Recommend a sitter you\'ve used</button>'}
+    <p class="muted" style="font-size:12px;margin-top:10px">Are you a sitter listed here? Email <b>${esc(S.settings.privacy_email || 'the app owner')}</b> to see, correct or remove your details.</p>
   </div>`;
   const form = (S.addingSitter || S.editSitter) ? sitterForm(S.editSitter ? g.sitters.find(x => x.id === S.editSitter) : null) : '';
   const cards = visible.length ? visible.map(x => sitterCard(x, me, admin, p)).join('') : (form ? '' : `<div class="card"><p>No sitters recommended in this group yet.</p><p class="muted">Got a babysitter you trust? Add them so friends can ask them too — and they'll get more work.</p></div>`);
@@ -1429,6 +1694,12 @@ function viewFamily() {
     ${fam.join_code ? `<label>Partner code</label><span class="code">${esc(fam.join_code)}</span>
     <p class="muted">Your partner signs in with their own email and enters this code to share your family's plan. Don't share it outside your household.</p>` : ''}
   </div>
+  <div class="card"><h2>Adults</h2>
+    <p class="muted">First names show to your groups. Mobile numbers are only shown to another family once you have a confirmed arrangement with them.</p>
+    ${S.adults.map(a => `<form class="kidrow wrap" data-f="saveAdult" data-v="${a.id}"><div class="grow grid2"><input name="first_name" required maxlength="40" value="${esc(a.first_name)}" aria-label="First name">
+      <input name="phone" type="tel" maxlength="30" value="${esc(a.phone || '')}" placeholder="Mobile (optional)" aria-label="Mobile"></div><button class="small">Save</button></form>`).join('')}
+    ${S.adults.length < 2 ? '<p class="muted">Partner not here yet? They sign in with their own email and enter the partner code above.</p>' : ''}
+  </div>
   <div class="card"><h2>Kids</h2>
     ${kids.map(k => `<div class="kidrow wrap"><div class="grow"><b>${kidName(k)}</b> <span class="muted">${k.gender && k.gender !== 'other' ? k.gender : ''}</span>
         <div class="chips" style="margin-top:3px">${(k.interests || []).map(t => `<span class="chip small">${INTEREST[t]?.e || ''} ${esc(INTEREST[t]?.l || t)}</span>`).join('') || '<span class="muted">No interests picked yet</span>'}</div>
@@ -1460,6 +1731,13 @@ function viewFamily() {
       <p class="muted" style="font-size:12px">Google Calendar: Other calendars → + → From URL → paste. Keep this link private.</p>`
     : `<p class="muted">Download your arrangements as a calendar file and open it to add them to your phone's calendar.${API.demo ? '' : ' (Live subscriptions switch on once the server function is set up.)'}</p>`}
     <button class="ghost" data-a="downloadIcs">⬇️ Download calendar file</button>
+  </div>
+  <div class="card"><h2>Privacy</h2>
+    <p class="muted">What Cohortdinate keeps about your family, who can see it, and how to get it changed or deleted.</p>
+    <button class="ghost" data-a="privacy">Read the privacy statement</button>
+    <h3>Delete our family</h3>
+    <p class="muted">Removes your family, kids, care notes, plans and logins for ${S.adults.length > 1 ? 'both of you' : 'you'}. Any arrangements are cancelled and the other families are emailed. This can't be undone.</p>
+    <button class="danger" data-a="deleteFamily">Delete our family and all our data…</button>
   </div>`;
 }
 function notesForm(k) {
@@ -1476,18 +1754,35 @@ function notesForm(k) {
 
 // ───────────── Group ─────────────
 function viewGroup() {
-  const g = S.groups.find(x => x.id === S.groupId);
+  const g = myGroup();
   const admin = isAdmin(), me = S.family.id;
   const others = S.groups.filter(x => x.id !== S.groupId);
   const oneoffs = S.g.holidays.filter(h => h.kind === 'oneoff');
   const pendingProviders = (S.adminList || []).filter(p => p.status === 'pending').length;
-  return `<div class="card"><h2>${esc(g.name)}</h2>
+  const admins = S.g.families.filter(f => f.role === 'admin');
+  const adultsOf = fid => S.g.adults.filter(a => a.family_id === fid).map(a => a.first_name);
+  return `${admin && S.pending.length ? `<div class="card inbox"><h2>🙋 Waiting to join</h2>
+    ${S.pending.map(p => `<div class="kidrow"><div class="grow"><b>${esc(p.name)}</b><div class="muted">${esc(listNames(p.adults || []))}${p.kids ? ` · ${p.kids} kid${p.kids > 1 ? 's' : ''}` : ''}</div></div>
+      <div class="flex col"><button data-a="approve" data-v="${p.family_id}">Approve</button><button class="link" data-a="decline" data-v="${p.family_id}">Decline</button></div></div>`).join('')}
+    <p class="muted">Only approve families you know. Once approved they can see the group's kids and plans.</p></div>` : ''}
+  <div class="card"><h2>${esc(g.name)}</h2>
     <p class="muted">${esc(COUNTRIES[g.country] || g.country)}${g.region ? ' · ' + esc(g.region) : ''}${admin ? ` · <button class="link" data-a="editRegion" style="padding:0">change region</button>` : ''}</p>
     ${S.editRegion ? `<form data-f="saveRegion" class="flex"><select name="region" class="grow">${regionOptions(g.country || 'NZ', g.region)}</select><button>Save</button></form><p class="muted">The region decides which anniversary-day public holidays show.</p>` : ''}
-    <label>Invite code</label><div class="flex"><span class="code">${esc(g.invite_code)}</span><button class="ghost" data-a="copyInvite">Copy invite</button></div>
-    <p class="muted">Share only with families you trust — anyone with the code can join and see the group's kids and plans.</p>
+    <label>Invite code</label><div class="flex" style="flex-wrap:wrap"><span class="code">${esc(g.invite_code)}</span><button class="ghost" data-a="copyInvite">Copy invite</button>${admin ? '<button class="link" data-a="resetCode">New code</button>' : ''}</div>
+    <p class="muted">New families need an admin to approve them. If the code ends up somewhere it shouldn't, an admin can make a new one — the old one stops working.</p>
     <h3>Families (${S.g.families.length})</h3>
-    ${S.g.families.map(f => { const n = S.g.kids.filter(k => k.family_id === f.id).length; return `<div class="kidrow"><div class="grow"><b>${esc(f.name)}</b>${f.id === me ? ' <span class="muted">(you)</span>' : ''}<div class="muted">${n} kid${n === 1 ? '' : 's'}${placeById(f.place_id) ? ' · ' + esc(placeById(f.place_id).name) : ''}</div></div>${f.role === 'admin' ? '<span class="pill ph">admin</span>' : ''}</div>`; }).join('')}
+    ${S.g.families.map(f => { const n = S.g.kids.filter(k => k.family_id === f.id).length;
+      return `<div class="kidrow wrap"><div class="grow"><b>${esc(f.name)}</b>${f.id === me ? ' <span class="muted">(you)</span>' : ''}${f.role === 'admin' ? ' <span class="pill ph">admin</span>' : ''}
+        <div class="muted">${esc(listNames(adultsOf(f.id)))}${adultsOf(f.id).length ? ' · ' : ''}${n} kid${n === 1 ? '' : 's'}${placeById(f.place_id) ? ' · ' + esc(placeById(f.place_id).name) : ''}</div></div>
+        ${admin && f.id !== me ? `<div class="flex col">${f.role === 'admin' ? `<button class="link" data-a="setAdmin" data-v="${f.id}" data-on="0">Remove admin</button>` : admins.length < 2 ? `<button class="link" data-a="setAdmin" data-v="${f.id}" data-on="1">Make co-admin</button>` : ''}
+          <button class="danger" data-a="removeFamily" data-v="${f.id}">Remove</button></div>` : ''}
+        ${admin && f.id === me && admins.length > 1 ? `<button class="link" data-a="setAdmin" data-v="${f.id}" data-on="0">Step down</button>` : ''}</div>`; }).join('')}
+    ${admin ? `<p class="muted">A group has one admin and can have one co-admin. Admins approve and remove families, set holiday dates and review flagged sitters.</p>` : ''}
+  </div>
+  <div class="card"><h2>What this group sees</h2>
+    <p class="muted">Choose what your family shares with <b>${esc(g.name)}</b>. Your other groups aren't affected.</p>
+    <label class="toggle"><input type="checkbox" data-c="showHosting" ${g.show_hosting !== false ? 'checked' : ''}> <span><b>Our hosting offers</b> — days we're home and can take extra kids</span></label>
+    <label class="toggle"><input type="checkbox" data-c="showNeed" ${g.show_need !== false ? 'checked' : ''}> <span><b>Days we need care</b></span></label>
   </div>
   <div class="card"><h2>One-off days</h2>
     <p class="muted">Teacher-only days, strikes, sick days, early finishes — anyone in the group can add one. It shows up in the dates menu at the top, and works just like a holiday.</p>
@@ -1509,11 +1804,10 @@ function viewGroup() {
       </form>`
     : S.g.holidays.filter(h => h.kind !== 'oneoff').map(h => `<div class="kidrow"><div class="grow"><b>${esc(h.name)}</b><div class="muted">${D.short(h.start_date)} – ${D.short(h.end_date)}</div></div></div>`).join('') + '<p class="muted">Only the group admin can change these.</p>'}
   </div>
-  ${S.isAdmin ? `<div class="card adminc"><h2>🛠️ App admin</h2><p class="muted">Only you see this. Review holiday programme providers, approve listings and set free trials.</p>
-    <button data-a="openAdmin">Review providers${pendingProviders ? ` (${pendingProviders} waiting)` : ''}</button></div>` : ''}
-  ${API.demo ? `<div class="card prog"><h2>Demo: provider portal</h2><p class="muted">See what a holiday programme provider sees when they list with Co-hortdinate.</p><button data-a="demoAs" data-v="provider">Preview the provider portal</button></div>` : ''}
+  ${S.isAdmin ? `<div class="card adminc"><h2>🛠️ App admin</h2><p class="muted">Only you see this. Review providers, handle sitter removal requests and download backups.</p>
+    <button data-a="openAdmin">Open app admin${pendingProviders ? ` (${pendingProviders} providers waiting)` : ''}</button></div>` : ''}
   <div class="card"><h2>Other groups</h2>
-    ${others.map(o => `<div class="kidrow"><div class="grow">${esc(o.name)}</div><button class="link" data-a="switchGroup" data-v="${o.id}">Open</button></div>`).join('')}
+    ${others.map(o => `<div class="kidrow"><div class="grow">${esc(o.name)}${o.role === 'pending' ? ' <span class="pill ph">waiting for approval</span>' : ''}</div><button class="link" data-a="switchGroup" data-v="${o.id}">Open</button></div>`).join('')}
     <form data-f="joinGroup"><label>Join with invite code</label><div class="flex"><input class="grow" name="code" required><button>Join</button></div></form>
     <h3>Start a new group</h3>${createGroupForm()}
   </div>
@@ -1528,7 +1822,19 @@ function viewAdmin() {
   const list = S.adminList;
   if (!list) return '<div class="spin">Loading providers…</div>';
   const badge = s => ({ pending: 'need', approved: 'host', rejected: 'ph', paused: 'ph' }[s]);
-  return `<div class="flex" style="margin-bottom:10px"><button class="link" data-a="tab" data-v="group">← Back</button><h2 class="grow" style="margin:0">Providers (${list.length})</h2></div>
+  const sr = S.sitterSearch;
+  return `<div class="flex" style="margin-bottom:10px"><button class="link" data-a="tab" data-v="group">← Back</button><h2 class="grow" style="margin:0">App admin</h2></div>
+  <div class="card"><h2>Backups</h2>
+    <p class="muted">A snapshot is taken every day and kept for 14 days. Download a copy every week or so and keep it somewhere private — it contains kids' details and care notes.</p>
+    ${(S.backups || []).map(b => `<div class="kidrow"><div class="grow"><b>${D.long(b.day)}</b><div class="muted">${Math.round(b.size / 1024)} KB</div></div><button class="link" data-a="downloadBackup" data-v="${b.day}">Download</button></div>`).join('') || '<p class="muted">Loading…</p>'}
+    <button class="ghost" data-a="downloadBackup" data-v="">⬇️ Take a fresh backup and download it</button>
+  </div>
+  <div class="card"><h2>Sitter removal requests</h2>
+    <p class="muted">If a sitter asks to see, correct or remove their details, find them here. Removing deletes them from every group.</p>
+    <form data-f="findSitter" class="flex"><input class="grow" name="q" required placeholder="Name or phone"><button>Find</button></form>
+    ${sr ? (sr.length ? sr.map(x => `<div class="kidrow"><div class="grow"><b>${esc(x.name)}</b><div class="muted">${esc(x.phone || '')} · ${esc(x.group)}${x.hidden ? ' · flagged' : ''}</div></div><button class="danger" data-a="adminDelSitter" data-v="${x.id}">Remove</button></div>`).join('') : '<p class="muted">No sitters found.</p>') : ''}
+  </div>
+  <h2 style="margin:16px 4px 8px">Providers (${list.length})</h2>
   <p class="muted" style="margin:0 2px 10px">Check each provider is a real business (website, NZBN on the Companies Office register, OSCAR approval if they claim it) before approving. Set a plan and end date by hand to give someone a free trial.</p>
   ${list.map(p => `<div class="card listing">
     <div class="flex"><h2 class="grow" style="margin:0">${esc(p.name)}</h2><span class="pill ${badge(p.status)}">${p.status}</span></div>
@@ -1581,7 +1887,7 @@ function viewProvider() {
       <div class="grid2"><div><label>Ages from</label><input name="age_min" type="number" min="0" max="18" value="${p.age_min}"></div><div><label>Ages to</label><input name="age_max" type="number" min="0" max="18" value="${p.age_max}"></div></div>
       <div class="grid2"><div><label>Prices</label><input name="price_text" maxlength="80" value="${esc(p.price_text || '')}" placeholder="e.g. $65/day · $300/week"></div>
       <div><label>NZBN</label><input name="nzbn" maxlength="20" value="${esc(p.nzbn || '')}"></div></div>
-      <label>Offer for Co-hortdinate families (optional)</label><input name="offer_text" maxlength="160" value="${esc(p.offer_text || '')}" placeholder="e.g. 10% off with code COHORT">
+      <label>Offer for Cohortdinate families (optional)</label><input name="offer_text" maxlength="160" value="${esc(p.offer_text || '')}" placeholder="e.g. 10% off with code COHORT">
       <label class="toggle" style="margin-top:8px"><input type="checkbox" name="oscar" ${p.oscar ? 'checked' : ''}> We're OSCAR approved (families can use the WINZ subsidy)</label>
       <label>What do you offer? (matched to kids' interests)</label>${interestChips('tag', p.tags || [])}
       <button style="margin-top:10px">Save listing</button>
@@ -1607,9 +1913,135 @@ function viewProvider() {
   <div class="card"><h2>Your plan</h2>
     <div class="plans">${Object.entries(PLAN_INFO).map(([k, v]) => `<div class="planbox ${k === eff ? 'cur' : ''}"><b>${v.name}</b><div class="price">${v.price}</div><ul>${v.bits.map(b => `<li>${b}</li>`).join('')}</ul>
       ${k === 'basic' ? (eff === 'basic' ? '<span class="pill ph">Current</span>' : '') : `<div class="flex col">${k === eff ? '<span class="pill host">Current</span>' : ''}<button ${p.status !== 'approved' ? 'disabled' : ''} data-a="checkout" data-v="${k}" data-t="year">${k === eff ? 'Renew' : 'Get'} 12 months</button><button class="ghost" ${p.status !== 'approved' ? 'disabled' : ''} data-a="checkout" data-v="${k}" data-t="break">Just one holiday</button></div>`}</div>`).join('')}</div>
-    <p class="muted">${p.status !== 'approved' ? 'Upgrades are available once your listing is approved. ' : ''}One payment, no automatic renewals — we'll email you 2 weeks before it ends. Prices in NZD.</p>
+    <p class="muted">${p.status !== 'approved' ? 'Upgrades are available once your listing is approved. ' : ''}One payment, no automatic renewals — we'll email you 2 weeks before it ends.</p>
+    <p class="gstline">${CONFIG.GST_REGISTERED ? `All prices are in NZD and include GST${CONFIG.GST_NUMBER ? ` (GST no. ${esc(CONFIG.GST_NUMBER)})` : ''}.` : 'All prices are in NZD. Cohortdinate isn\'t GST-registered, so no GST is charged.'}</p>
   </div>
-  <div class="card"><div class="flex">${API.demo ? '<button class="link" data-a="demoAs" data-v="family">← Back to the family demo</button>' : '<button class="link" data-a="signOut">Sign out</button>'}</div></div>`;
+  <div class="card"><div class="flex"><button class="link" data-a="signOut">Sign out</button></div></div>`;
+}
+
+// ───────────── Privacy statement ─────────────
+function viewPrivacy() {
+  const email = esc(S.settings?.privacy_email || '[privacy email to be added]');
+  const officer = esc(S.settings?.privacy_officer || '[name to be added]');
+  return `<div class="card privacy"><button class="link" data-a="privacyClose" style="padding-left:0">← Back</button>
+  <h2>Privacy statement</h2>
+  <p class="muted">Last updated 26 November 2026</p>
+  <p>Cohortdinate helps groups of families who know each other share school-holiday care, playdates and trusted sitters. This explains what we keep, who sees it, and your rights under New Zealand's Privacy Act 2020.</p>
+  <h3>What we collect</h3>
+  <ul>
+    <li><b>Your family:</b> a family name, each adult's first name and email address, and optionally a mobile number and your suburb.</li>
+    <li><b>Your kids:</b> first name, birth month (to show age), and optionally gender and interests. We don't collect surnames or exact birth dates.</li>
+    <li><b>Care notes</b> you choose to add: allergies, medical or special needs, pickup person and emergency contact.</li>
+    <li><b>Your plans:</b> which days you need care, can host or are away; arrangements; programme bookings; playdates and replies.</li>
+    <li><b>Sitters</b> that families in your group recommend: name, contact details, rate and notes, added by a family who has used them.</li>
+    <li><b>Holiday programme providers:</b> business and contact details, and counts of how often families view or click their listing.</li>
+  </ul>
+  <h3>Who can see it</h3>
+  <ul>
+    <li>Only families in your groups, and only after a group admin approves them. You can hide your hosting offers or care needs from any group.</li>
+    <li><b>Care notes</b> are shown only to a family who has confirmed they're looking after your child, from 2 weeks before the day. They're in emails only if you tick that option.</li>
+    <li><b>Mobile numbers</b> are shown only to a family you have a confirmed arrangement with.</li>
+    <li><b>Providers</b> never see names or families — only totals, and never for fewer than 5 kids.</li>
+    <li>We don't sell your information or use it for advertising.</li>
+  </ul>
+  <h3>Where it's kept and for how long</h3>
+  <p>Data is stored with Supabase (our database provider) in its Sydney, Australia region, and emails are sent through our email provider. Daily backups are kept for 14 days. If you delete your family, your information is removed straight away and drops out of backups within 14 days.</p>
+  <h3>Sitters</h3>
+  <p>If you're a sitter and a family has listed you, you can ask to see, correct or remove your details by emailing ${email}. We'll remove you from every group.</p>
+  <h3>Your rights</h3>
+  <p>You can see and correct most of your information in the app, and delete your whole family from the Family tab. To ask for a copy of what we hold, or anything else about privacy, contact our privacy officer, ${officer}, at ${email}. If you're not happy with our response, you can complain to the Office of the Privacy Commissioner (privacy.org.nz).</p>
+  </div>`;
+}
+
+// ───────────── Playdates & birthday invites ─────────────
+function pdWhen(p) { return `${D.long(p.date)}${p.start_time ? ', ' + fmtTime(p.start_time) : ''}${p.end_time ? '–' + fmtTime(p.end_time) : ''}`; }
+function pdInviteText(p) {
+  return [
+    `${PD_KINDS[p.kind][0]} ${p.title}`, `📅 ${pdWhen(p)}`, p.place ? `📍 ${p.place}` : '', p.theme ? `Theme: ${p.theme}` : '', p.note || '',
+    p.gift_note ? `🎁 ${p.gift_note}` : '', p.rsvp_by ? `Please let me know by ${D.long(p.rsvp_by)}.` : 'Please let me know if you can come.',
+  ].filter(Boolean).join('\n');
+}
+// the age they're turning at the birthday closest to the party date
+function bdayTitle(kidId, date) {
+  const k = S.g.kidById[kidId]; if (!k) return '';
+  if (!k.birth_month) return `${k.first_name}'s birthday party`;
+  const party = D.parse(date || D.add(D.today(), 30)), by = Number(k.birth_month.slice(0, 4)), bm = Number(k.birth_month.slice(5, 7));
+  const y = party.getUTCFullYear();
+  const best = [y - 1, y, y + 1].map(yy => ({ yy, gap: Math.abs(Date.UTC(yy, bm - 1, 15) - party) })).sort((a, b) => a.gap - b.gap)[0].yy;
+  return `${k.first_name}'s ${ordinal(best - by)} birthday`;
+}
+function viewPlaydates() {
+  const me = S.family.id, today = D.today();
+  const list = S.g.playdates.filter(p => p.date >= today).sort((a, b) => (a.date + (a.start_time || '')).localeCompare(b.date + (b.start_time || '')));
+  const form = S.pdForm ? playdateForm() : '';
+  return `${form || `<div class="card play"><div class="flex"><h2 class="grow" style="margin:0">Playdates & parties</h2><button data-a="newPlaydate">+ New</button></div>
+      <p class="muted">Stay-and-play meetups, drop-off playdates and birthday invites — for the families in ${esc(myGroup().name)}.</p></div>`}
+    ${list.length ? list.map(p => playdateCard(p, me)).join('') : (form ? '' : '<div class="card"><p class="muted">Nothing planned yet. Start one with “+ New”.</p></div>')}`;
+}
+function playdateCard(p, me) {
+  const host = p.host_family === me;
+  const rs = S.g.rsvps.filter(r => r.playdate_id === p.id);
+  const mine = rs.find(r => r.family_id === me);
+  const goingKids = rs.filter(r => r.status === 'going').reduce((a, r) => a + r.kid_ids.length, 0);
+  const maybe = rs.filter(r => r.status === 'maybe').length;
+  const open = S.pdOpen === p.id;
+  const det = S.pdDetails[p.id];
+  const myKids = S.g.kids.filter(k => k.family_id === me);
+  const invited = p.open_to_group ? 'Whole group' : `${S.g.invites.filter(i => i.playdate_id === p.id).length} famil${S.g.invites.filter(i => i.playdate_id === p.id).length === 1 ? 'y' : 'ies'} invited`;
+  const [emoji, kindName] = PD_KINDS[p.kind];
+  return `<div class="card pd ${p.kind}">
+    <div class="lhead" data-a="openPlaydate" data-v="${p.id}" role="button" tabindex="0" aria-expanded="${open}">
+      <div class="flex"><div class="pdemoji">${emoji}</div><div class="grow"><h2 style="margin:0">${esc(p.title)}</h2>
+        <div class="muted">${pdWhen(p)}${p.place ? ' · ' + esc(p.place) : ''}</div>
+        <div class="muted">${kindName} · ${host ? 'you\'re hosting' : 'from ' + hostLabel(p.host_family, p.date)} · ${invited}</div></div><span class="chev">${open ? '▴' : '▾'}</span></div>
+      <div class="chips" style="margin-top:6px"><span class="pill host">${goingKids} kid${goingKids === 1 ? '' : 's'} going${p.max_kids ? ` of ${p.max_kids}` : ''}</span>${maybe ? `<span class="pill ph">${maybe} maybe</span>` : ''}
+        ${!host ? (mine ? `<span class="pill ${mine.status === 'going' ? 'host' : mine.status === 'maybe' ? 'ph' : 'need'}">You: ${mine.status === 'going' ? 'Going' : mine.status === 'maybe' ? 'Maybe' : 'Can\'t'}</span>` : '<span class="pill spare">Needs your reply</span>') : ''}</div>
+    </div>
+    ${open ? `<div class="lbody">
+      ${p.theme ? `<p>🎨 Theme: <b>${esc(p.theme)}</b></p>` : ''}${p.note ? `<p>${esc(p.note)}</p>` : ''}${p.gift_note ? `<p class="offer">🎁 ${esc(p.gift_note)}</p>` : ''}
+      ${p.rsvp_by ? `<p class="muted">Reply by ${D.long(p.rsvp_by)}</p>` : ''}
+      ${det?.phones?.length ? `<div class="phones">${det.phones.map(x => `<a href="tel:${esc(x.phone.replace(/[^\d+]/g, ''))}">📞 ${esc(x.name)} ${esc(x.phone)}</a>`).join(' · ')}</div>` : ''}
+      ${!host ? `<form class="inlineform" data-f="rsvp" data-v="${p.id}">
+          <label>Who's coming?</label><div class="flex" style="flex-wrap:wrap">${myKids.map(k => `<label class="toggle" style="margin:0 10px 0 0"><input type="checkbox" name="kid" value="${k.id}" ${!mine || mine.kid_ids.includes(k.id) ? 'checked' : ''}> ${esc(k.first_name)}</label>`).join('')}</div>
+          <label class="toggle"><input type="checkbox" name="share" ${mine?.share_notes ? 'checked' : ''}> ${p.kind === 'dropoff' ? 'Share our kids\' care notes with the host' : 'Share allergies with the host (for food planning)'}</label>
+          <input name="note" maxlength="200" placeholder="Note to the host (optional)" value="${esc(mine?.note || '')}">
+          <div class="flex" style="margin-top:8px;flex-wrap:wrap"><button name="status" value="going">Going</button><button class="ghost" name="status" value="maybe">Maybe</button><button class="link" name="status" value="no">Can't make it</button></div>
+        </form>` : ''}
+      <h4>Replies</h4>
+      ${det ? (det.rsvps.length ? det.rsvps.map(r => `<div class="needrow"><b>${esc(r.family)}</b> — ${r.status === 'going' ? 'Going' : r.status === 'maybe' ? 'Maybe' : 'Can\'t make it'}
+          ${r.kids.length ? ': ' + r.kids.map(k => kidName(k, p.date)).join(', ') : ''}${r.note ? ` <span class="muted">· “${esc(r.note)}”</span>` : ''}
+          ${host ? r.kids.filter(k => k.notes && Object.values(k.notes).some(Boolean)).map(k => `<div class="notesbox"><b>${esc(k.first_name)}</b>${k.notes.allergies ? `<div>⚠️ <b>Allergies:</b> ${esc(k.notes.allergies)}</div>` : ''}${k.notes.needs ? `<div>💊 ${esc(k.notes.needs)}</div>` : ''}${k.notes.pickup ? `<div>🚗 Pickup: ${esc(k.notes.pickup)}</div>` : ''}${k.notes.emergency ? `<div>☎️ ${esc(k.notes.emergency)}</div>` : ''}</div>`).join('') : ''}</div>`).join('')
+        : '<p class="muted">No replies yet.</p>') : '<p class="muted">Loading…</p>'}
+      ${host ? `<div class="flex" style="flex-wrap:wrap;margin-top:8px"><button class="ghost" data-a="copyPdText" data-v="${p.id}">📋 Copy invite text</button><button class="danger" data-a="cancelPlaydate" data-v="${p.id}">Cancel it</button></div>
+        <p class="muted" style="font-size:12px">“Copy invite text” gives you a plain message to paste into a class chat for families who aren't on Cohortdinate — they just reply to you.</p>` : ''}
+    </div>` : ''}
+  </div>`;
+}
+function playdateForm() {
+  const f = S.pdForm, me = S.family.id;
+  const myKids = S.g.kids.filter(k => k.family_id === me);
+  const others = S.g.families.filter(x => x.id !== me);
+  const bday = f.kind === 'birthday';
+  return `<div class="card play"><h2>New ${PD_KINDS[f.kind][1].toLowerCase()}</h2>
+    <div class="seg" style="margin-bottom:8px">${Object.entries(PD_KINDS).map(([k, [e, l]]) => `<button class="${f.kind === k ? 'on host' : ''}" data-a="pdKind" data-v="${k}">${e} ${l}</button>`).join('')}</div>
+    <p class="muted">${PD_KINDS[f.kind][2]}.</p>
+    <form data-f="createPlaydate">
+      ${bday ? `<div class="grid2"><div><label>Whose birthday?</label><select name="bday_kid" data-c="pdBdayKid">${myKids.map(k => `<option value="${k.id}" ${f.bday_kid === k.id ? 'selected' : ''}>${esc(k.first_name)}</option>`).join('')}</select></div>
+        <div><label>Theme (optional)</label><input name="theme" maxlength="80" placeholder="e.g. Pool party"></div></div>` : ''}
+      <label>Title</label><input name="title" required maxlength="80" value="${esc(f.title || '')}" placeholder="${bday ? '' : 'e.g. Western Springs playground'}">
+      <div class="grid2"><div><label>Date</label><input type="date" name="date" required min="${D.today()}" value="${f.date || ''}" data-c="pdDate"></div>
+        <div class="grid2"><div><label>From</label><input type="time" name="start" value="${f.start || (bday ? '14:00' : '10:00')}"></div><div><label>To</label><input type="time" name="end" value="${f.end || (bday ? '16:00' : '12:00')}"></div></div></div>
+      <label>Where</label><input name="place" maxlength="120" value="${esc(f.place || '')}" placeholder="Our place, a park, the pools…">
+      <label>Note (optional)</label><textarea name="note" maxlength="500" rows="2" placeholder="${bday ? 'e.g. Sausage sizzle and cake' : 'e.g. Bring togs and a hat'}">${esc(f.note || '')}</textarea>
+      ${bday ? `<div class="grid2"><div><label>Reply by</label><input type="date" name="rsvp_by" min="${D.today()}"></div><div><label>Gift note (optional)</label><input name="gift" maxlength="200" placeholder="e.g. No gifts please"></div></div>` : ''}
+      <label>${f.kind === 'stay' ? 'Max kids (optional)' : 'How many kids can you have?'}</label><input type="number" name="max" min="1" max="60" style="max-width:120px" value="${esc(f.max ?? (f.kind === 'dropoff' ? '4' : ''))}">
+      <label>Who's invited?</label>
+      <label class="toggle"><input type="radio" name="who" value="all" ${f.who !== 'some' ? 'checked' : ''} data-c="pdWho"> The whole group</label>
+      <label class="toggle"><input type="radio" name="who" value="some" ${f.who === 'some' ? 'checked' : ''} data-c="pdWho"> Choose families</label>
+      ${f.who === 'some' ? `<div class="invitelist">${others.map(x => { const kids = S.g.kids.filter(k => k.family_id === x.id);
+        return `<label class="toggle invite"><input type="checkbox" name="fam" value="${x.id}" ${(f.fams || []).includes(x.id) ? 'checked' : ''}> <span><b>${esc(x.name)}</b><br><small class="muted">${kids.map(k => `${kidName(k, f.date || D.today())}${(k.interests || []).length ? ' ' + k.interests.slice(0, 3).map(t => INTEREST[t]?.e || '').join('') : ''}`).join(', ')}</small></span></label>`; }).join('')}</div>` : ''}
+      <div class="flex" style="margin-top:10px"><button>Send invites</button><button type="button" class="link" data-a="closePdForm">Cancel</button></div>
+    </form></div>`;
 }
 
 // ───────────── Actions ─────────────
@@ -1635,7 +2067,7 @@ function buildIcs() {
   Object.values(pg).forEach(xs => ev.push({ date: xs[0].date, uid: 'p-' + xs.map(x => x.id).join('-'), title: `${xs.map(x => S.g.kidById[x.kid_id]?.first_name).join(' & ')} @ ${xs[0].programme}` }));
   const e = s => String(s).replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
   const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z');
-  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Co-hortdinate//EN', 'CALSCALE:GREGORIAN', `X-WR-CALNAME:${e('Co-hortdinate — ' + S.family.name)}`];
+  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Cohortdinate//EN', 'CALSCALE:GREGORIAN', `X-WR-CALNAME:${e('Cohortdinate — ' + S.family.name)}`];
   ev.forEach(x => lines.push('BEGIN:VEVENT', `UID:${x.uid.slice(0, 200)}@cohortdinate`, `DTSTAMP:${stamp}`, `DTSTART;VALUE=DATE:${x.date.replaceAll('-', '')}`, `DTEND;VALUE=DATE:${D.add(x.date, 1).replaceAll('-', '')}`, `SUMMARY:${e(x.title)}`, 'TRANSP:TRANSPARENT', 'END:VEVENT'));
   lines.push('END:VCALENDAR');
   return { text: lines.join('\r\n'), count: ev.length };
@@ -1651,7 +2083,18 @@ const actions = {
   toggleOffers() { S.showAllOffers = !S.showAllOffers; render(); },
   openForm(el) { S.form = { type: el.dataset.t, date: el.dataset.d, fam: el.dataset.v, host: el.dataset.v }; render(); },
   closeForm() { S.form = null; render(); },
-  respond(el) { run(() => API.respondBookings(ids(el), el.dataset.ok === '1')); },
+  respond(el) {
+    const list = ids(el), ok = el.dataset.ok === '1';
+    run(async () => {
+      try { await API.respondBookings(list, ok, false); }
+      catch (e) {
+        const m = /OVER_CAPACITY:(\d+)/.exec(e.message || '');
+        if (!m) throw e;
+        if (!confirm(`That would make ${m[1]} kids at your place — more than the spots you offered. Accept anyway? (We'll update your spots.)`)) return;
+        await API.respondBookings(list, ok, true);
+      }
+    });
+  },
   cancelBooking(el) { if (confirm('Cancel this arrangement? The other family will get an email.')) run(() => API.cancelBookings(ids(el))); },
   dismiss(el) { ids(el).forEach(i => S.dismissed.add(i)); store.set('hh-dismissed', [...S.dismissed].slice(-200)); render(); },
   showNotes(el) { S.notesFor = S.notesFor === el.dataset.v ? null : el.dataset.v; render(); },
@@ -1665,16 +2108,21 @@ const actions = {
   setStatus(el) {
     const d = el.dataset.d, prev = S.g.planMap[S.family.id + '|' + d];
     const st = el.dataset.v;
-    const row = { family_id: S.family.id, date: d, status: st, capacity: st === 'host' ? (prev?.capacity || 1) : 0, note: st === 'host' ? (prev?.note || '') : '', part: ['need', 'host'].includes(st) ? (prev?.part || 'full') : 'full' };
-    setPlanLocal(row); render();
-    run(() => API.upsertPlans([row]), false);
+    const row = { family_id: S.family.id, date: d, status: st, capacity: st === 'host' ? (prev?.capacity || 1) : 0, note: st === 'host' ? (prev?.note || '') : '',
+      part: ['need', 'host'].includes(st) ? (prev?.part || 'full') : 'full', host_adults: st === 'host' ? (prev?.host_adults?.length ? prev.host_adults : myAdultIds()) : [] };
+    planChange(d, row);
   },
-  setPart(el) { const row = { ...S.g.planMap[S.family.id + '|' + el.dataset.d], part: el.dataset.v }; setPlanLocal(row); render(); run(() => API.upsertPlans([row]), false); },
-  clearStatus(el) { const d = el.dataset.d; delete S.g.planMap[S.family.id + '|' + d]; render(); run(() => API.deletePlan(S.family.id, d), false); },
+  setPart(el) { planChange(el.dataset.d, { ...S.g.planMap[S.family.id + '|' + el.dataset.d], part: el.dataset.v }); },
+  clearStatus(el) { planChange(el.dataset.d, null); },
   cap(el) {
     const row = { ...S.g.planMap[S.family.id + '|' + el.dataset.d] };
     row.capacity = Math.max(0, Math.min(20, (row.capacity || 0) + Number(el.dataset.v)));
-    setPlanLocal(row); render(); run(() => API.upsertPlans([row]), false);
+    planChange(el.dataset.d, row);
+  },
+  toggleHomeAdult(el) {
+    const row = { ...S.g.planMap[S.family.id + '|' + el.dataset.d] };
+    const set = new Set(row.host_adults || []); set.has(el.dataset.v) ? set.delete(el.dataset.v) : set.add(el.dataset.v);
+    row.host_adults = [...set]; setPlanLocal(row); render(); run(() => API.upsertPlans([row]), false);
   },
   bulkFill() {
     const status = document.getElementById('bulkStatus').value;
@@ -1700,7 +2148,7 @@ const actions = {
   delKid(el) { const k = myKids().find(k => k.id === el.dataset.v); if (confirm(`Remove ${k.first_name}? Their programme bookings and arrangements will be removed too.`)) run(() => API.deleteKid(el.dataset.v)); },
   async copyInvite() {
     const g = S.groups.find(x => x.id === S.groupId);
-    const text = `Join our school holiday group "${g.name}" on Co-hortdinate: ${location.origin + location.pathname}\nInvite code: ${g.invite_code}`;
+    const text = `Join our school holiday group "${g.name}" on Cohortdinate: ${location.origin + location.pathname}\nInvite code: ${g.invite_code}`;
     try { await navigator.clipboard.writeText(text); toast('Invite copied — paste it into your group chat.'); }
     catch { prompt('Copy this invite:', text); }
   },
@@ -1721,13 +2169,58 @@ const actions = {
   resetHols() { if (confirm('Replace this group\'s school holiday dates with the official dates for your region? One-off days are kept.')) run(() => API.resetHolidays(S.groupId)); },
   delHoliday(el) { if (confirm('Remove this one-off day?')) run(() => API.deleteHoliday(el.dataset.v)); },
   leaveGroup() {
-    if (!confirm('Leave this group? Your plan stays saved, but this group will no longer see it.')) return;
-    run(async () => { await API.leaveGroup(S.groupId, S.family.id); const me = await API.getMe(); S.groups = me.groups; S.groupId = S.groups[0]?.id || null; });
+    if (!confirm('Leave this group?\n\nYour arrangements with this group will be cancelled and those families emailed. Sitters only you recommended are removed, and any playdates you\'re hosting are cancelled.')) return;
+    run(async () => { await API.leaveGroup(S.groupId); const me = await API.getMe(); S.groups = me.groups; S.groupId = S.groups[0]?.id || null; store.set('hh-group', S.groupId); S.periodId = null; });
   },
+  removeFamily(el) {
+    const f = S.g.famById[el.dataset.v];
+    if (!confirm(`Remove ${f.name} from this group?\n\nTheir arrangements with the group are cancelled and everyone affected is emailed. They'll need a new approval to come back.`)) return;
+    run(() => API.removeFamily(S.groupId, f.id));
+  },
+  approve(el) { run(async () => { await API.approveMember(S.groupId, el.dataset.v); toast('Approved — they\'ve been emailed'); }); },
+  decline(el) { if (confirm('Decline this request? They won\'t be able to see the group.')) run(() => API.removeFamily(S.groupId, el.dataset.v)); },
+  setAdmin(el) { run(async () => { await API.setAdmin(S.groupId, el.dataset.v, el.dataset.on === '1'); const me = await API.getMe(); S.groups = me.groups; }); },
+  resetCode() {
+    if (!confirm('Make a new invite code? The current code stops working straight away (families already in the group aren\'t affected).')) return;
+    run(async () => { const c = await API.resetCode(S.groupId); myGroup().invite_code = c; toast('New invite code: ' + c); });
+  },
+  deleteFamily() {
+    const word = prompt('This permanently deletes your family, kids, care notes, plans and logins, and cancels your arrangements (the other families are emailed).\n\nType DELETE to confirm.');
+    if ((word || '').trim().toUpperCase() !== 'DELETE') return;
+    run(async () => { await API.deleteFamily(); Object.assign(S, { user: null, family: null, groups: [], g: null }); }, false);
+  },
+  privacy() { S.showPrivacy = true; render(); scrollTo(0, 0); },
+  privacyClose() { S.showPrivacy = false; render(); },
+  retry() { run(() => Promise.resolve()); },
   signOut() { run(async () => { await API.signOut(); Object.assign(S, { user: null, family: null, groups: [], g: null, sentTo: null, pv: null, providerId: null }); }, false); },
-  demoAs(el) { API.setDemoAs(el.dataset.v); S.pv = null; S.tab = el.dataset.v === 'family' ? 'group' : S.tab; boot(); scrollTo(0, 0); },
   // app admin
-  openAdmin() { S.tab = 'admin'; S.adminList = null; render(); run(async () => { S.adminList = await API.adminProviders(); }, false); },
+  openAdmin() { S.tab = 'admin'; S.adminList = null; S.backups = null; S.sitterSearch = null; render(); run(async () => { S.adminList = await API.adminProviders(); S.backups = await API.adminBackups(); }, false); },
+  downloadBackup(el) {
+    run(async () => {
+      const data = await API.adminBackupDownload(el.dataset.v || null);
+      const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 1)], { type: 'application/json' }));
+      a.download = `cohortdinate-backup-${el.dataset.v || D.today()}.json`; document.body.appendChild(a); a.click(); a.remove();
+      S.backups = await API.adminBackups(); toast('Backup downloaded — keep it somewhere private');
+    }, false);
+  },
+  adminDelSitter(el) { if (confirm('Remove this sitter from every group?')) run(async () => { await API.adminDeleteSitter(el.dataset.v); S.sitterSearch = (S.sitterSearch || []).filter(x => x.id !== el.dataset.v); toast('Sitter removed'); }, false); },
+  // playdates
+  newPlaydate() { S.pdForm = { kind: 'stay', who: 'all' }; render(); scrollTo(0, 0); },
+  pdKind(el) {
+    keepPdForm(); const f = S.pdForm; f.kind = el.dataset.v;
+    if (f.kind === 'birthday') { f.bday_kid = f.bday_kid || myKids()[0]?.id; f.title = bdayTitle(f.bday_kid, f.date); }
+    render();
+  },
+  closePdForm() { S.pdForm = null; render(); },
+  openPlaydate(el) {
+    const id = el.dataset.v; S.pdOpen = S.pdOpen === id ? null : id; render();
+    if (S.pdOpen) API.playdateDetails(id).then(d => { S.pdDetails[id] = d; render(); }).catch(e => { S.error = e.message; render(); });
+  },
+  async copyPdText(el) {
+    const text = pdInviteText(S.g.playdates.find(p => p.id === el.dataset.v));
+    try { await navigator.clipboard.writeText(text); toast('Invite text copied — paste it into your class chat'); } catch { prompt('Copy this invite:', text); }
+  },
+  cancelPlaydate(el) { if (confirm('Cancel this? Families who said Going or Maybe will be emailed.')) run(async () => { await API.cancelPlaydate(el.dataset.v); S.pdOpen = null; }); },
   adminEdit(el) { S.adminEdit = el.dataset.v || null; render(); },
   adminStatus(el) {
     const p = S.adminList.find(x => x.id === el.dataset.v), st = el.dataset.s;
@@ -1768,6 +2261,31 @@ const actions = {
   },
 };
 
+// keep what's been typed when the playdate form re-draws
+function keepPdForm() {
+  const f = document.querySelector('form[data-f=createPlaydate]'); if (!f || !S.pdForm) return;
+  Object.assign(S.pdForm, { title: f.title.value, date: f.date.value, start: f.start.value, end: f.end.value, place: f.place.value, note: f.note.value, max: f.max.value,
+    fams: checked(f, 'fam') });
+}
+const myAdultIds = () => { const mine = S.adults.find(a => a.user_id === S.myUserId); return mine ? [mine.id] : S.adults.slice(0, 1).map(a => a.id); };
+// Changing a day that has arrangements: warn, then cancel them (and email the other families) before saving
+function planChange(d, row) {
+  const hit = clashes(d, row || { status: 'none', part: 'full' });
+  let over = [];
+  if (row?.status === 'host') {
+    const conf = S.g.bookings.filter(b => !b.elsewhere && b.date === d && b.status === 'confirmed' && b.host_family === S.family.id);
+    if (conf.length > row.capacity) over = conf.slice(row.capacity);
+  }
+  const all = [...new Set([...hit, ...over])];
+  const save = () => {
+    if (row) { setPlanLocal(row); render(); return API.upsertPlans([row]); }
+    delete S.g.planMap[S.family.id + '|' + d]; render(); return API.deletePlan(S.family.id, d);
+  };
+  if (!all.length) { run(save, false); return; }
+  const lines = all.map(b => b.host_family === S.family.id ? `• You're hosting ${S.g.kidById[b.kid_id]?.first_name} (${S.g.famById[b.child_family]?.name})` : `• ${S.g.kidById[b.kid_id]?.first_name} is going to ${S.g.famById[b.host_family]?.name}`);
+  if (!confirm(`${D.long(d)} has arrangements that this change would break:\n\n${lines.join('\n')}\n\nCancel ${all.length === 1 ? 'it' : 'them'} and let the other famil${new Set(all.map(b => b.host_family === S.family.id ? b.child_family : b.host_family)).size === 1 ? 'y' : 'ies'} know?`)) return;
+  run(async () => { await API.cancelBookings(all.map(b => b.id)); await save(); });
+}
 const checked = (f, name) => [...f.querySelectorAll(`input[name=${name}]:checked`)].map(i => i.value);
 const forms = {
   async signin(f) {
@@ -1775,8 +2293,24 @@ const forms = {
     await run(async () => { await API.signIn(email); S.sentTo = email; }, false); S.busy = false; render();
   },
   async verify(f) { await run(async () => { await API.verify(S.sentTo, f.code.value.trim()); S.user = true; }, false); boot(); },
-  async createFamily(f) { await run(() => API.createFamily(f.name.value.trim()), false); S.tab = 'family'; boot(); },
-  async joinFamily(f) { await run(() => API.joinFamily(f.code.value.trim()), false); boot(); },
+  async createFamily(f) { await run(() => API.createFamily(f.name.value.trim(), f.adult.value.trim(), f.phone.value.trim()), false); S.tab = 'family'; boot(); },
+  async joinFamily(f) { await run(() => API.joinFamily(f.code.value.trim(), f.adult.value.trim(), f.phone.value.trim()), false); boot(); },
+  saveAdult(f) { const a = { id: f.dataset.v, first_name: f.first_name.value.trim(), phone: f.phone.value.trim() };
+    run(async () => { await API.saveAdult(a); Object.assign(S.adults.find(x => x.id === a.id), a); toast('Saved'); }); },
+  findSitter(f) { const q = f.q.value.trim(); run(async () => { S.sitterSearch = await API.adminFindSitters(q); }, false); },
+  createPlaydate(f) {
+    const kind = S.pdForm.kind, who = f.querySelector('input[name=who]:checked')?.value || 'all';
+    const x = { group_id: S.groupId, kind, title: f.title.value.trim(), date: f.date.value, start_time: f.start.value || null, end_time: f.end.value || null,
+      place: f.place.value.trim(), note: f.note.value.trim(), open_to_group: who === 'all', families: who === 'some' ? checked(f, 'fam') : [],
+      max_kids: f.max.value ? parseInt(f.max.value, 10) : null, rsvp_by: f.rsvp_by?.value || null, gift_note: f.gift?.value.trim() || null,
+      theme: f.theme?.value.trim() || null, birthday_kid: kind === 'birthday' ? f.bday_kid.value : null };
+    if (x.end_time && x.start_time && x.end_time <= x.start_time) { S.error = 'The finish time is before the start.'; render(); return; }
+    run(async () => { await API.createPlaydate(x); S.pdForm = null; toast('Invites sent'); });
+  },
+  rsvp(f, e) {
+    const status = e?.submitter?.value || 'going';
+    run(async () => { await API.rsvp(f.dataset.v, status, checked(f, 'kid'), f.share.checked, f.note.value.trim()); S.pdDetails[f.dataset.v] = await API.playdateDetails(f.dataset.v); toast('Reply sent'); });
+  },
   async registerProvider(f) { await run(() => API.registerProvider(f.name.value.trim()), false); boot(); },
   async createGroup(f) {
     if (!f.region.value) { S.error = 'Pick your region so we can load the right holiday dates.'; render(); return; }
@@ -1875,7 +2409,7 @@ document.addEventListener('keydown', e => {
 });
 document.addEventListener('submit', e => {
   const f = e.target; if (!forms[f.dataset.f]) return;
-  e.preventDefault(); forms[f.dataset.f](f);
+  e.preventDefault(); forms[f.dataset.f](f, e);
 });
 document.addEventListener('change', e => {
   const el = e.target, c = el.dataset.c; if (!c) return;
@@ -1891,6 +2425,17 @@ document.addEventListener('change', e => {
     sel.innerHTML = '<option value="">Choose…</option>' + S.places.filter(p => p.country === country && p.region === el.value).map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('');
     sel.disabled = !el.value;
   }
+  if (c === 'showHosting' || c === 'showNeed') {
+    const g = myGroup(); g[c === 'showHosting' ? 'show_hosting' : 'show_need'] = el.checked;
+    run(() => API.setVisibility(S.groupId, g.show_hosting !== false, g.show_need !== false), false);
+  }
+  if (c === 'pdDate' && S.pdForm?.kind === 'birthday') {
+    const f = el.form, auto = bdayTitle(S.pdForm.bday_kid, S.pdForm.date);
+    if (!f.title.value || f.title.value === auto || / birthday$/.test(f.title.value)) { S.pdForm.date = el.value; f.title.value = bdayTitle(f.bday_kid.value, el.value); }
+    S.pdForm.date = el.value;
+  }
+  if (c === 'pdWho') { keepPdForm(); S.pdForm.who = el.value; render(); }
+  if (c === 'pdBdayKid') { keepPdForm(); S.pdForm.bday_kid = el.value; S.pdForm.title = bdayTitle(el.value, S.pdForm.date); render(); }
   if (c === 'autoAccept' || c === 'emailReminders') {
     const key = c === 'autoAccept' ? 'auto_accept' : 'email_reminders';
     S.family[key] = el.checked; run(() => API.updateFamily(S.family.id, { [key]: el.checked }), false);
